@@ -1,24 +1,45 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { HospitalColors } from '@/constants/theme';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
+const HospitalTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: HospitalColors.primary,
+    background: HospitalColors.background,
+    card: HospitalColors.white,
+    text: HospitalColors.textPrimary,
+    border: HospitalColors.border,
+  },
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+    <ThemeProvider value={HospitalTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register-step1" />
+        <Stack.Screen name="register-step2" />
+        <Stack.Screen name="recover-password" />
+        <Stack.Screen name="dashboard" />
+        <Stack.Screen name="orders" />
+        <Stack.Screen name="order-detail" />
+        <Stack.Screen name="citas" />
+        <Stack.Screen name="consultar-referencia" />
+        <Stack.Screen name="solicitud-cita" />
+        <Stack.Screen name="consultar-solicitud" />
+        <Stack.Screen name="select-specialty" />
+        <Stack.Screen name="search-type" />
+        <Stack.Screen name="select-doctor" />
+        <Stack.Screen name="select-datetime" />
+        <Stack.Screen name="confirm-appointment" />
+        <Stack.Screen name="edit-profile" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
