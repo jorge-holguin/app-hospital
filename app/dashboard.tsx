@@ -103,6 +103,9 @@ export default function DashboardScreen() {
         disabled
       />
 
+      {/* Help footer */}
+      <Text style={styles.helpFooter}>¿Necesitas ayuda? Llámanos al (01) 418-3232</Text>
+
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
         <Text style={styles.logoutText}>Cerrar Sesión</Text>
@@ -171,10 +174,15 @@ const styles = StyleSheet.create({
   menuTitle: { fontSize: 16, fontWeight: '600', color: HospitalColors.textPrimary },
   menuSub: { fontSize: 12, color: HospitalColors.textLight, marginTop: 2 },
   menuArrow: { fontSize: 24, color: HospitalColors.textLight, fontWeight: '300' },
+  helpFooter: {
+    textAlign: 'center', fontSize: 12, color: HospitalColors.textLight,
+    marginTop: 32, paddingVertical: 8,
+  },
   logoutBtn: {
-    marginTop: 20, height: 48, borderRadius: 14,
+    marginTop: 12, height: 48, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: '#EF4444',
+    marginBottom: 20,
   },
   logoutText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
 });

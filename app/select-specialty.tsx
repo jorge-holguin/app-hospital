@@ -86,7 +86,7 @@ export default function SelectSpecialtyScreen() {
 
           <FlatList
             data={filtered}
-            keyExtractor={(item) => item.idEspecialidad}
+            keyExtractor={(item, index) => item.idEspecialidad ? `${item.idEspecialidad}-${index}` : `specialty-${index}`}
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => (
               <TouchableOpacity

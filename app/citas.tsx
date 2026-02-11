@@ -7,7 +7,7 @@ const CITAS_OPTIONS = [
     id: 'solicitud',
     title: 'Solicitar Cita',
     desc: 'Agenda una cita con nuestros especialistas',
-    icon: '�',
+    icon: '📋',
     route: '/solicitud-cita',
     accent: HospitalColors.primary,
   },
@@ -15,7 +15,7 @@ const CITAS_OPTIONS = [
     id: 'referencia',
     title: 'Consultar Referencias',
     desc: 'Revisa el estado de tus referencias médicas',
-    icon: '�',
+    icon: '📄',
     route: '/consultar-referencia',
     accent: HospitalColors.accent,
   },
@@ -59,6 +59,8 @@ export default function CitasScreen() {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
       ))}
+
+      <Text style={styles.helpFooter}>¿Necesitas ayuda? Llámanos al (01) 418-3232</Text>
     </ScrollView>
   );
 }
@@ -86,4 +88,8 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '600', color: HospitalColors.textPrimary, marginBottom: 3 },
   cardDesc: { fontSize: 12, color: HospitalColors.textLight, lineHeight: 16 },
   arrow: { fontSize: 26, color: HospitalColors.textLight, fontWeight: '300' },
+  helpFooter: {
+    textAlign: 'center', fontSize: 12, color: HospitalColors.textLight,
+    marginTop: 24, paddingVertical: 16,
+  },
 });
