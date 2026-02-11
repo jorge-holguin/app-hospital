@@ -3,7 +3,7 @@
  * Base URL: https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas
  */
 
-const BASE_URL = 'https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas';
 
 // ── Types ────────────────────────────────────────────────
 export interface Especialidad {
@@ -118,10 +118,17 @@ export async function fetchCitas(
 ): Promise<CitaSlot[]> {
   try {
     const { fechaInicio, fechaFin } = getDateRange();
-    const url = `${BASE_URL}/citas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&medicoId=${medicoId}&turnoConsulta=${turnoConsulta}&idEspecialidad=${idEspecialidad}`;
+    const url = `${BASE_URL}/citas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&medicoId=${encodeURIComponent(medicoId)}&turnoConsulta=${encodeURIComponent(turnoConsulta)}&idEspecialidad=${encodeURIComponent(idEspecialidad)}`;
+    console.log('[API] fetchCitas URL:', url);
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    const text = await res.text();
+    if (!text) return [];
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.warn('[API] fetchCitas non-JSON response:', text.substring(0, 200));
+      return [];
+    }
   } catch (error) {
     console.error('[API] fetchCitas error:', error);
     return [];
@@ -135,10 +142,17 @@ export async function fetchFechasConsultorios(
   fechaFin: string,
 ): Promise<FechaConsultorio[]> {
   try {
-    const url = `${BASE_URL}/fechas-consultorios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&turnoConsulta=${turnoConsulta}&idEspecialidad=${idEspecialidad}`;
+    const url = `${BASE_URL}/fechas-consultorios?fechaInicio=${encodeURIComponent(fechaInicio)}&fechaFin=${encodeURIComponent(fechaFin)}&turnoConsulta=${encodeURIComponent(turnoConsulta)}&idEspecialidad=${encodeURIComponent(idEspecialidad)}`;
+    console.log('[API] fetchFechasConsultorios URL:', url);
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    const text = await res.text();
+    if (!text) return [];
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.warn('[API] fetchFechasConsultorios non-JSON response:', text.substring(0, 200));
+      return [];
+    }
   } catch (error) {
     console.error('[API] fetchFechasConsultorios error:', error);
     return [];

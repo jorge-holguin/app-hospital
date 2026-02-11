@@ -1,11 +1,16 @@
+import { mockUser } from '@/constants/mockData';
+import { HospitalColors } from '@/constants/theme';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, Alert, Image,
+  Alert, Image,
+  KeyboardAvoidingView, Platform,
+  ScrollView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { HospitalColors } from '@/constants/theme';
-import { mockUser } from '@/constants/mockData';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -13,8 +18,50 @@ export default function EditProfileScreen() {
   const [lastName, setLastName] = useState(mockUser.lastName);
   const [phone, setPhone] = useState(mockUser.phone || '987654321');
   const [email, setEmail] = useState(mockUser.email || 'usuario@ejemplo.com');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`;
+
+  const pickImageFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Se necesita acceso a la galería para seleccionar una foto.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara para tomar una foto.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+
+  const handleChangePhoto = () => {
+    Alert.alert('Cambiar foto de perfil', 'Selecciona una opción', [
+      { text: 'Tomar foto', onPress: takePhoto },
+      { text: 'Elegir de galería', onPress: pickImageFromGallery },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  };
 
   const handleSave = () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -43,10 +90,16 @@ export default function EditProfileScreen() {
 
         {/* Avatar section */}
         <View style={styles.avatarSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.7}>
+          <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.changePhotoBtn} onPress={handleChangePhoto} activeOpacity={0.7}>
             <Text style={styles.changePhotoText}>Cambiar foto</Text>
           </TouchableOpacity>
         </View>
@@ -127,6 +180,10 @@ const styles = StyleSheet.create({
     borderWidth: 3, borderColor: HospitalColors.border, marginBottom: 12,
   },
   avatarText: { color: HospitalColors.textSecondary, fontSize: 30, fontWeight: '700' },
+  avatarImage: {
+    width: 88, height: 88, borderRadius: 44,
+    borderWidth: 3, borderColor: HospitalColors.border, marginBottom: 12,
+  },
   changePhotoBtn: {
     backgroundColor: HospitalColors.primarySoft, paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 20,
