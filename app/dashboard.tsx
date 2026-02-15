@@ -1,5 +1,6 @@
 import { mockTriage, mockUser } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -33,7 +34,7 @@ export default function DashboardScreen() {
       '¿Estás seguro que deseas cerrar tu sesión?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar Sesión', style: 'destructive', onPress: () => router.replace('/login') },
+        { text: 'Cerrar Sesión', style: 'destructive', onPress: async () => { await SessionManager.clearSession(); router.replace('/login'); } },
       ],
     );
   };

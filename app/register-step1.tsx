@@ -10,25 +10,21 @@ import {
     View,
 } from 'react-native';
 
-const DOCUMENT_TYPES = ['DNI', 'CE', 'Pasaporte'];
-
 export default function RegisterStep1Screen() {
   const router = useRouter();
-  const [documentType, setDocumentType] = useState('DNI');
-  const [documentNumber, setDocumentNumber] = useState('');
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showDocTypes, setShowDocTypes] = useState(false);
-
-  const maxDocLength = documentType === 'DNI' ? 8 : 12;
 
   const handleNext = () => {
-    if (!documentNumber.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (!nombres.trim() || !apellidos.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Por favor complete todos los campos.');
       return;
     }
-    if (documentType === 'DNI' && documentNumber.length !== 8) {
-      Alert.alert('Error', 'El DNI debe tener 8 dígitos.');
+    if (!email.includes('@')) {
+      Alert.alert('Error', 'Ingrese un correo electrónico válido.');
       return;
     }
     if (password.length < 6) {
@@ -41,7 +37,7 @@ export default function RegisterStep1Screen() {
     }
     router.push({
       pathname: '/register-step2',
-      params: { documentType, documentNumber, password },
+      params: { nombres, apellidos, email, password },
     });
   };
 
@@ -50,44 +46,42 @@ export default function RegisterStep1Screen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.title}>Crear cuenta</Text>
-          <Text style={styles.stepLabel}>Paso 1 de 2 — Datos de acceso</Text>
+          <Text style={styles.stepLabel}>Paso 1 de 2 — Datos personales</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: '50%' }]} />
           </View>
         </View>
 
         <View style={styles.card}>
-          {/* Document type selector */}
-          <Text style={styles.label}>Tipo de documento</Text>
-          <TouchableOpacity style={styles.selector} onPress={() => setShowDocTypes(!showDocTypes)}>
-            <Text style={styles.selectorText}>{documentType}</Text>
-            <Text style={styles.selectorArrow}>{showDocTypes ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-          {showDocTypes && (
-            <View style={styles.dropdown}>
-              {DOCUMENT_TYPES.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[styles.dropdownItem, type === documentType && styles.dropdownItemActive]}
-                  onPress={() => { setDocumentType(type); setShowDocTypes(false); }}
-                >
-                  <Text style={[styles.dropdownText, type === documentType && { color: HospitalColors.primary, fontWeight: '600' }]}>
-                    {type}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          <Text style={styles.label}>Número de documento</Text>
+          <Text style={styles.label}>Nombres</Text>
           <TextInput
             style={styles.input}
-            placeholder={documentType === 'DNI' ? 'Ej: 72345678' : 'Número de documento'}
+            placeholder="Ej: Juan Carlos"
             placeholderTextColor={HospitalColors.textLight}
-            value={documentNumber}
-            onChangeText={setDocumentNumber}
-            keyboardType="numeric"
-            maxLength={maxDocLength}
+            value={nombres}
+            onChangeText={setNombres}
+            autoCapitalize="words"
+          />
+
+          <Text style={styles.label}>Apellidos</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: Pérez García"
+            placeholderTextColor={HospitalColors.textLight}
+            value={apellidos}
+            onChangeText={setApellidos}
+            autoCapitalize="words"
+          />
+
+          <Text style={styles.label}>Correo electrónico</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: correo@ejemplo.com"
+            placeholderTextColor={HospitalColors.textLight}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
 
           <Text style={styles.label}>Contraseña</Text>
@@ -144,20 +138,6 @@ const styles = StyleSheet.create({
     fontSize: 13, fontWeight: '600', color: HospitalColors.textSecondary,
     marginBottom: 6, marginLeft: 2,
   },
-  selector: {
-    height: 50, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 12,
-    paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: HospitalColors.inputBg, marginBottom: 16,
-  },
-  selectorText: { fontSize: 15, color: HospitalColors.textPrimary, fontWeight: '500' },
-  selectorArrow: { fontSize: 10, color: HospitalColors.textLight },
-  dropdown: {
-    backgroundColor: HospitalColors.white, borderWidth: 1, borderColor: HospitalColors.border,
-    borderRadius: 12, marginTop: -12, marginBottom: 16, overflow: 'hidden',
-  },
-  dropdownItem: { paddingVertical: 12, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: HospitalColors.border },
-  dropdownItemActive: { backgroundColor: HospitalColors.primarySoft },
-  dropdownText: { fontSize: 15, color: HospitalColors.textPrimary },
   input: {
     height: 50, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 12,
     paddingHorizontal: 14, fontSize: 15, color: HospitalColors.textPrimary,

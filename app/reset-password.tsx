@@ -1,51 +1,56 @@
-import { HospitalColors } from '@/constants/theme';
-import { forgotPassword } from '@/services/authApi';
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { HospitalColors } from '@/constants/theme';
+import { resetPassword } from '@/services/authApi';
 
-export default function RecoverPasswordScreen() {
+export default function ResetPasswordScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const params = useLocalSearchParams<{ email: string }>();
+  const [email, setEmail] = useState(params.email || '');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSendCode = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Por favor ingrese su correo electrónico.');
+  const handleReset = async () => {
+    if (!email.trim() || !code.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Por favor complete todos los campos.');
       return;
     }
-    if (!email.includes('@')) {
-      Alert.alert('Error', 'Ingrese un correo electrónico válido.');
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'La nueva contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Las contraseñas no coinciden.');
       return;
     }
 
     setLoading(true);
     try {
-      await forgotPassword(email.trim());
+      await resetPassword(email.trim(), code.trim(), newPassword);
       Alert.alert(
-        'Código enviado',
-        'Si la cuenta existe, recibirás un correo con el código para restablecer tu contraseña.',
-        [{
-          text: 'Continuar',
-          onPress: () => router.push({ pathname: '/reset-password', params: { email: email.trim() } }),
-        }],
+        'Contraseña restablecida',
+        'Su contraseña ha sido actualizada exitosamente. Ya puede iniciar sesión con su nueva contraseña.',
+        [{ text: 'Iniciar sesión', onPress: () => router.replace('/login') }],
       );
     } catch (error: any) {
       const msg =
         error.response?.data?.message ||
         error.response?.data?.error ||
-        'Error al enviar el código. Intente nuevamente.';
+        'Error al restablecer la contraseña. Verifique el código e intente nuevamente.';
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);
@@ -60,12 +65,12 @@ export default function RecoverPasswordScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.iconContainer}>
-            <Text style={styles.iconText}>🔒</Text>
+            <Text style={styles.iconText}>🔑</Text>
           </View>
 
-          <Text style={styles.title}>Recuperar contraseña</Text>
+          <Text style={styles.title}>Restablecer contraseña</Text>
           <Text style={styles.description}>
-            Ingresa tu correo electrónico y te enviaremos un código para restablecer tu contraseña.
+            Ingresa el código que recibiste en tu correo electrónico junto con tu nueva contraseña.
           </Text>
 
           <Text style={styles.label}>Correo electrónico</Text>
@@ -79,22 +84,54 @@ export default function RecoverPasswordScreen() {
             keyboardType="email-address"
           />
 
+          <Text style={styles.label}>Código de verificación</Text>
+          <TextInput
+            style={styles.codeInput}
+            placeholder="Ingrese el código"
+            placeholderTextColor={HospitalColors.textLight}
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="none"
+            maxLength={10}
+            textAlign="center"
+          />
+
+          <Text style={styles.label}>Nueva contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Mínimo 6 caracteres"
+            placeholderTextColor={HospitalColors.textLight}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+          />
+
+          <Text style={styles.label}>Confirmar nueva contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Repita la nueva contraseña"
+            placeholderTextColor={HospitalColors.textLight}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => router.back()}
+              onPress={() => router.replace('/login')}
             >
               <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.sendButton, loading && { opacity: 0.7 }]}
-              onPress={handleSendCode}
+              style={[styles.resetButton, loading && { opacity: 0.7 }]}
+              onPress={handleReset}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color={HospitalColors.white} size="small" />
               ) : (
-                <Text style={styles.sendText}>Enviar código</Text>
+                <Text style={styles.resetText}>Restablecer</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -161,13 +198,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 15,
     color: HospitalColors.textPrimary,
-    marginBottom: 20,
+    marginBottom: 16,
+    backgroundColor: HospitalColors.inputBg,
+  },
+  codeInput: {
+    width: '100%',
+    height: 56,
+    borderWidth: 1.5,
+    borderColor: HospitalColors.border,
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 4,
+    color: HospitalColors.textPrimary,
+    marginBottom: 16,
     backgroundColor: HospitalColors.inputBg,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 8,
   },
   cancelButton: {
     flex: 1,
@@ -185,7 +236,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  sendButton: {
+  resetButton: {
     flex: 1,
     height: 50,
     borderRadius: 14,
@@ -194,7 +245,7 @@ const styles = StyleSheet.create({
     backgroundColor: HospitalColors.primary,
     marginLeft: 10,
   },
-  sendText: {
+  resetText: {
     color: HospitalColors.white,
     fontSize: 15,
     fontWeight: '600',
