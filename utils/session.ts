@@ -1,50 +1,82 @@
 /**
  * Session persistence utility using AsyncStorage.
- * Keeps the user session always active in the app.
+ * Stores accessToken + refreshToken from the auth API.
  *
  * Usage:
- *   - On login success: await SessionManager.saveSession({ token, user })
- *   - On app start: const session = await SessionManager.getSession()
+ *   - On login/register success: await SessionManager.saveTokens({ accessToken, refreshToken })
+ *   - On app start: const tokens = await SessionManager.getTokens()
  *   - On logout: await SessionManager.clearSession()
- *   - The session does NOT expire — it persists until explicitly cleared.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SESSION_KEY = '@hospital_session';
+const ACCESS_TOKEN_KEY = '@hospital_access_token';
+const REFRESH_TOKEN_KEY = '@hospital_refresh_token';
+const USER_DATA_KEY = '@hospital_user_data';
 
-export interface SessionData {
-  token: string;
-  userId: string;
-  documentNumber: string;
-  fullName: string;
-  loginTimestamp: number;
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface UserData {
+  email: string;
+  nombres?: string;
+  apellidos?: string;
+  celular?: string;
 }
 
 export const SessionManager = {
   /**
-   * Save session data to persistent storage.
-   * Call this after a successful login.
+   * Save auth tokens after login or register.
    */
-  async saveSession(data: SessionData): Promise<void> {
+  async saveTokens(tokens: AuthTokens): Promise<void> {
     try {
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      await AsyncStorage.multiSet([
+        [ACCESS_TOKEN_KEY, tokens.accessToken],
+        [REFRESH_TOKEN_KEY, tokens.refreshToken],
+      ]);
     } catch (error) {
-      console.error('Error saving session:', error);
+      console.error('Error saving tokens:', error);
     }
   },
 
   /**
-   * Retrieve the current session.
-   * Returns null if no session exists.
+   * Retrieve the current tokens.
    */
-  async getSession(): Promise<SessionData | null> {
+  async getTokens(): Promise<AuthTokens | null> {
     try {
-      const raw = await AsyncStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw) as SessionData;
+      const pairs = await AsyncStorage.multiGet([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY]);
+      const accessToken = pairs[0][1];
+      const refreshToken = pairs[1][1];
+      if (!accessToken || !refreshToken) return null;
+      return { accessToken, refreshToken };
     } catch (error) {
-      console.error('Error reading session:', error);
+      console.error('Error reading tokens:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get only the access token (used by interceptor).
+   */
+  async getAccessToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+    } catch (error) {
+      console.error('Error reading access token:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get only the refresh token (used by interceptor).
+   */
+  async getRefreshToken(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    } catch (error) {
+      console.error('Error reading refresh token:', error);
       return null;
     }
   },
@@ -53,28 +85,43 @@ export const SessionManager = {
    * Check if a session exists (quick boolean check).
    */
   async isLoggedIn(): Promise<boolean> {
-    const session = await this.getSession();
-    return session !== null;
+    const token = await this.getAccessToken();
+    return token !== null;
   },
 
   /**
-   * Clear the session (logout).
+   * Save user profile data.
    */
-  async clearSession(): Promise<void> {
+  async saveUserData(data: UserData): Promise<void> {
     try {
-      await AsyncStorage.removeItem(SESSION_KEY);
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(data));
     } catch (error) {
-      console.error('Error clearing session:', error);
+      console.error('Error saving user data:', error);
     }
   },
 
   /**
-   * Update a specific field in the session without replacing the whole object.
+   * Retrieve user profile data.
    */
-  async updateSession(partial: Partial<SessionData>): Promise<void> {
-    const current = await this.getSession();
-    if (current) {
-      await this.saveSession({ ...current, ...partial });
+  async getUserData(): Promise<UserData | null> {
+    try {
+      const raw = await AsyncStorage.getItem(USER_DATA_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw) as UserData;
+    } catch (error) {
+      console.error('Error reading user data:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Clear the entire session (logout).
+   */
+  async clearSession(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_DATA_KEY]);
+    } catch (error) {
+      console.error('Error clearing session:', error);
     }
   },
 };

@@ -24,7 +24,9 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="register-step1" />
         <Stack.Screen name="register-step2" />
+        <Stack.Screen name="verify-email" />
         <Stack.Screen name="recover-password" />
+        <Stack.Screen name="reset-password" />
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="orders" />
         <Stack.Screen name="order-detail" />

@@ -1,7 +1,10 @@
 import { HospitalColors } from '@/constants/theme';
+import { login } from '@/services/authApi';
+import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Image,
     KeyboardAvoidingView, Platform,
@@ -15,13 +18,29 @@ export default function LoginScreen() {
   const router = useRouter();
   const [documentId, setDocumentId] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!documentId.trim() || !password.trim()) {
       Alert.alert('Error', 'Por favor ingrese su documento de identidad y contraseña.');
       return;
     }
-    router.replace('/dashboard');
+
+    setLoading(true);
+    try {
+      const tokens = await login({ email: documentId.trim(), password });
+      await SessionManager.saveTokens(tokens);
+      await SessionManager.saveUserData({ email: documentId.trim() });
+      router.replace('/dashboard');
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Credenciales incorrectas o error de conexión.';
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -68,8 +87,12 @@ export default function LoginScreen() {
             <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin} activeOpacity={0.85}>
-            <Text style={styles.loginButtonText}>Ingresar</Text>
+          <TouchableOpacity style={[styles.loginButton, loading && { opacity: 0.7 }]} onPress={handleLogin} activeOpacity={0.85} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={HospitalColors.white} />
+            ) : (
+              <Text style={styles.loginButtonText}>Ingresar</Text>
+            )}
           </TouchableOpacity>
         </View>
 

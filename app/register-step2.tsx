@@ -1,48 +1,111 @@
 import { HospitalColors } from '@/constants/theme';
+import { register } from '@/services/authApi';
+import { SessionManager } from '@/utils/session';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
-    KeyboardAvoidingView, Platform,
+    KeyboardAvoidingView, Modal, Platform,
     ScrollView,
     StyleSheet,
     Text, TextInput, TouchableOpacity,
     View,
 } from 'react-native';
 
+const TERMS_TEXT = `TÉRMINOS Y CONDICIONES DE USO — HJATCH App
+
+1. ACEPTACIÓN DE TÉRMINOS
+Al registrarse y utilizar esta aplicación, usted acepta estos términos y condiciones en su totalidad.
+
+2. TRATAMIENTO DE DATOS PERSONALES
+Sus datos personales (nombre, correo electrónico, número de celular, fecha de nacimiento) serán utilizados exclusivamente para la gestión de citas médicas y comunicaciones relacionadas con los servicios de salud del Hospital José Agurto Tello de Chosica.
+
+3. RESPONSABILIDAD SOBRE LOS DATOS
+La aplicación implementa medidas de seguridad para proteger su información. Sin embargo, el Hospital no se responsabiliza por:
+  - Accesos no autorizados derivados del mal uso de sus credenciales por parte del usuario.
+  - Pérdida de datos ocasionada por el uso indebido del dispositivo móvil.
+  - Interceptación de datos en redes públicas o inseguras.
+
+4. OBLIGACIONES DEL USUARIO
+  - Mantener la confidencialidad de su contraseña.
+  - No compartir sus credenciales de acceso con terceros.
+  - Proporcionar información veraz y actualizada.
+  - Notificar inmediatamente cualquier uso no autorizado de su cuenta.
+
+5. FINALIDAD DEL SERVICIO
+Esta aplicación tiene como único fin facilitar la gestión de citas médicas, consultas de órdenes médicas y servicios de salud del hospital.
+
+6. MODIFICACIONES
+El Hospital se reserva el derecho de modificar estos términos en cualquier momento, notificando a los usuarios a través de la aplicación.
+
+7. LEY APLICABLE
+Estos términos se rigen por la legislación peruana vigente, en particular la Ley N° 29733, Ley de Protección de Datos Personales.`;
+
 export default function RegisterStep2Screen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    documentType: string; documentNumber: string; password: string;
+    nombres: string; apellidos: string; email: string; password: string;
   }>();
 
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [ubigeo, setUbigeo] = useState('');
+  const [celular, setCelular] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [dataAccepted, setDataAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (!phone.trim() || !email.trim() || !verificationCode.trim() || !ubigeo.trim()) {
+  const handleRegister = async () => {
+    if (!celular.trim() || !fechaNacimiento.trim()) {
       Alert.alert('Error', 'Por favor complete todos los campos.');
       return;
     }
-    if (phone.length < 9) {
+    if (celular.length < 9) {
       Alert.alert('Error', 'El número de celular debe tener al menos 9 dígitos.');
       return;
     }
-    if (!email.includes('@')) {
-      Alert.alert('Error', 'Ingrese un correo electrónico válido.');
+    // Validate date format YYYY-MM-DD
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(fechaNacimiento)) {
+      Alert.alert('Error', 'La fecha de nacimiento debe tener formato AAAA-MM-DD (ej: 1990-05-15).');
       return;
     }
-    if (!termsAccepted || !dataAccepted) {
-      Alert.alert('Error', 'Debe aceptar los términos y condiciones y la autorización de datos personales.');
+    if (!termsAccepted) {
+      Alert.alert('Error', 'Debe aceptar los términos y condiciones para continuar.');
       return;
     }
-    Alert.alert('Registro exitoso', 'Su cuenta ha sido creada correctamente.', [
-      { text: 'OK', onPress: () => router.replace('/login') },
-    ]);
+
+    setLoading(true);
+    try {
+      const tokens = await register({
+        nombres: params.nombres,
+        apellidos: params.apellidos,
+        email: params.email,
+        celular: celular.trim(),
+        fechaNacimiento: fechaNacimiento.trim(),
+        password: params.password,
+        termsAccepted: true,
+      });
+      await SessionManager.saveTokens(tokens);
+      await SessionManager.saveUserData({
+        email: params.email,
+        nombres: params.nombres,
+        apellidos: params.apellidos,
+        celular: celular.trim(),
+      });
+      // Navigate to email verification screen
+      router.replace({
+        pathname: '/verify-email',
+        params: { email: params.email },
+      });
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Error al registrar. Intente nuevamente.';
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,7 +125,7 @@ export default function RegisterStep2Screen() {
         {/* Info chip from step 1 */}
         <View style={styles.infoChip}>
           <Text style={styles.infoChipText}>
-            {params.documentType}: {params.documentNumber}
+            {params.nombres} {params.apellidos} — {params.email}
           </Text>
         </View>
 
@@ -72,61 +135,48 @@ export default function RegisterStep2Screen() {
             style={styles.input}
             placeholder="Ej: 987654321"
             placeholderTextColor={HospitalColors.textLight}
-            value={phone}
-            onChangeText={setPhone}
+            value={celular}
+            onChangeText={setCelular}
             keyboardType="phone-pad"
             maxLength={9}
           />
 
-          <Text style={styles.label}>Correo electrónico</Text>
+          <Text style={styles.label}>Fecha de nacimiento</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ej: correo@ejemplo.com"
+            placeholder="AAAA-MM-DD (ej: 1990-05-15)"
             placeholderTextColor={HospitalColors.textLight}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <Text style={styles.label}>Código verificador</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Código de verificación"
-            placeholderTextColor={HospitalColors.textLight}
-            value={verificationCode}
-            onChangeText={setVerificationCode}
-            maxLength={6}
-          />
-
-          <Text style={styles.label}>Ubigeo</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: 150101"
-            placeholderTextColor={HospitalColors.textLight}
-            value={ubigeo}
-            onChangeText={setUbigeo}
+            value={fechaNacimiento}
+            onChangeText={setFechaNacimiento}
             keyboardType="numeric"
-            maxLength={6}
+            maxLength={10}
           />
 
-          {/* Checkboxes */}
+          {/* Terms checkbox */}
           <TouchableOpacity style={styles.checkboxRow} onPress={() => setTermsAccepted(!termsAccepted)}>
             <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
               {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.checkboxLabel}>Términos y Condiciones de Uso</Text>
+            <Text style={styles.checkboxLabel}>
+              Acepto los{' '}
+              <Text style={styles.termsLink} onPress={() => setShowTermsModal(true)}>
+                Términos y Condiciones
+              </Text>{' '}
+              y autorizo el tratamiento de mis datos personales.
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.checkboxRow} onPress={() => setDataAccepted(!dataAccepted)}>
-            <View style={[styles.checkbox, dataAccepted && styles.checkboxChecked]}>
-              {dataAccepted && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={styles.checkboxLabel}>Autorización para el Tratamiento de Datos Personales</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister} activeOpacity={0.85}>
-            <Text style={styles.registerButtonText}>Registrarme</Text>
+          <TouchableOpacity
+            style={[styles.registerButton, loading && { opacity: 0.7 }]}
+            onPress={handleRegister}
+            activeOpacity={0.85}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={HospitalColors.white} />
+            ) : (
+              <Text style={styles.registerButtonText}>Registrarme</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -137,6 +187,27 @@ export default function RegisterStep2Screen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTermsModal} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Términos y Condiciones</Text>
+            <TouchableOpacity onPress={() => setShowTermsModal(false)}>
+              <Text style={styles.modalClose}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalBody}>
+            <Text style={styles.modalText}>{TERMS_TEXT}</Text>
+          </ScrollView>
+          <TouchableOpacity
+            style={styles.modalAcceptBtn}
+            onPress={() => { setTermsAccepted(true); setShowTermsModal(false); }}
+          >
+            <Text style={styles.modalAcceptText}>Aceptar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -168,14 +239,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, fontSize: 15, color: HospitalColors.textPrimary,
     backgroundColor: HospitalColors.inputBg, marginBottom: 16,
   },
-  checkboxRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
   checkbox: {
     width: 22, height: 22, borderWidth: 2, borderColor: HospitalColors.primary,
-    borderRadius: 6, justifyContent: 'center', alignItems: 'center', marginRight: 10,
+    borderRadius: 6, justifyContent: 'center', alignItems: 'center', marginRight: 10, marginTop: 2,
   },
   checkboxChecked: { backgroundColor: HospitalColors.primary },
   checkmark: { color: HospitalColors.white, fontSize: 14, fontWeight: 'bold' },
-  checkboxLabel: { flex: 1, fontSize: 13, color: HospitalColors.textSecondary },
+  checkboxLabel: { flex: 1, fontSize: 13, color: HospitalColors.textSecondary, lineHeight: 20 },
+  termsLink: { color: HospitalColors.primary, fontWeight: '600', textDecorationLine: 'underline' },
   registerButton: {
     backgroundColor: HospitalColors.primary, height: 52, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
@@ -184,4 +256,19 @@ const styles = StyleSheet.create({
   loginLink: { alignItems: 'center', marginTop: 28 },
   loginText: { fontSize: 14, color: HospitalColors.textSecondary, marginBottom: 8 },
   loginBtnText: { color: HospitalColors.primary, fontSize: 15, fontWeight: '600' },
+  // Modal styles
+  modalContainer: { flex: 1, backgroundColor: HospitalColors.white, paddingTop: Platform.OS === 'ios' ? 56 : 24 },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: HospitalColors.border,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: HospitalColors.textPrimary },
+  modalClose: { fontSize: 15, color: HospitalColors.primary, fontWeight: '600' },
+  modalBody: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
+  modalText: { fontSize: 14, color: HospitalColors.textSecondary, lineHeight: 22 },
+  modalAcceptBtn: {
+    backgroundColor: HospitalColors.primary, height: 52, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center', margin: 24,
+  },
+  modalAcceptText: { color: HospitalColors.white, fontSize: 16, fontWeight: '700' },
 });

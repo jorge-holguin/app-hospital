@@ -1,4 +1,6 @@
 import { HospitalColors } from '@/constants/theme';
+import { startNetworkMonitor } from '@/services/networkManager';
+import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Image, StyleSheet, Text, View } from 'react-native';
@@ -11,13 +13,17 @@ export default function SplashScreen() {
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
+    // Start network monitor for offline-first sync
+    startNetworkMonitor();
+
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, friction: 8, useNativeDriver: true }),
     ]).start();
 
-    const timer = setTimeout(() => {
-      router.replace('/login');
+    const timer = setTimeout(async () => {
+      const isLoggedIn = await SessionManager.isLoggedIn();
+      router.replace(isLoggedIn ? '/dashboard' : '/login');
     }, 2500);
     return () => clearTimeout(timer);
   }, []);
