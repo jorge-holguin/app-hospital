@@ -12,7 +12,7 @@ import {
 
 export default function SelectSpecialtyScreen() {
   const router = useRouter();
-  const { patientType, appointmentType } = useLocalSearchParams<{ patientType: string; appointmentType: string }>();
+  const { patientType, appointmentType, sessionToken } = useLocalSearchParams<{ patientType: string; appointmentType: string; sessionToken: string }>();
   const [search, setSearch] = useState('');
   const [specialties, setSpecialties] = useState<Especialidad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ export default function SelectSpecialtyScreen() {
   const handleSelect = (specialtyId: string, specialtyName: string) => {
     router.push({
       pathname: '/search-type',
-      params: { patientType, appointmentType, specialtyId, specialtyName },
+      params: { patientType, appointmentType, specialtyId, specialtyName, sessionToken },
     });
   };
 
@@ -54,6 +54,17 @@ export default function SelectSpecialtyScreen() {
           </View>
         </View>
       </View>
+
+      {/* Ver mis Referencias button */}
+      <TouchableOpacity
+        style={styles.refBtn}
+        onPress={() => router.push('/consultar-referencia')}
+        activeOpacity={0.7}
+      >
+        <Text style={{ fontSize: 16, marginRight: 8 }}>📄</Text>
+        <Text style={styles.refBtnText}>Ver mis Referencias</Text>
+        <Text style={{ fontSize: 16, color: HospitalColors.textLight, marginLeft: 'auto' }}>›</Text>
+      </TouchableOpacity>
 
       {/* Search */}
       <View style={styles.searchBox}>
@@ -156,4 +167,11 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 13, color: HospitalColors.textLight, marginTop: 4 },
   loadingBox: { alignItems: 'center', paddingTop: 80 },
   loadingText: { fontSize: 14, color: HospitalColors.textLight, marginTop: 12 },
+  refBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#EFF6FF', borderRadius: 12,
+    marginHorizontal: 20, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: '#BFDBFE',
+  },
+  refBtnText: { fontSize: 14, fontWeight: '600', color: '#1E40AF' },
 });

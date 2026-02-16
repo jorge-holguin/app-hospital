@@ -1,13 +1,14 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
 import { HospitalColors } from '@/constants/theme';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function SearchTypeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     patientType: string; appointmentType: string;
     specialtyId: string; specialtyName: string;
+    sessionToken: string;
   }>();
 
   const handleByDoctor = () => {

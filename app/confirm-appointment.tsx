@@ -1,4 +1,3 @@
-import { mockUser } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
 import {
     getShiftFromTime,
@@ -6,10 +5,11 @@ import {
     SolicitudPayload,
     submitSolicitud,
 } from '@/services/citasApi';
+import { SessionManager, UserData } from '@/utils/session';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
+    ActivityIndicator, Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -26,27 +26,46 @@ export default function ConfirmAppointmentScreen() {
     date: string; displayDate: string;
     time: string; shift: string; consultorio: string;
     idCita: string; lugar: string; searchBy: string;
+    sessionToken: string;
   }>();
 
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [reservationCode, setReservationCode] = useState('');
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    SessionManager.getUserData().then(setUser);
+  }, []);
+
+  const userName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
+  const userDoc = user?.nroDocumento || '';
+  const userDocType = user?.tipoDocumento || 'D  ';
+  const userPhone = user?.celular || '';
+  const userEmail = user?.email || '';
 
   const locationName = params.lugar === '2'
     ? 'Consultorios Externos - Sede Anexa'
     : 'Consultorios Externos - Sede Central Hospital Chosica';
 
   const handleConfirm = async () => {
+    if (!params.sessionToken) {
+      Alert.alert('Error', 'Token de sesión no disponible. Vuelva a iniciar el proceso.', [
+        { text: 'Volver', onPress: () => router.replace('/citas') },
+      ]);
+      return;
+    }
+
     setSubmitting(true);
 
     const payload: SolicitudPayload = {
-      tipoDocumento: 'D  ',
-      numeroDocumento: mockUser.documentNumber || '',
+      tipoDocumento: userDocType,
+      numeroDocumento: userDoc,
       citaId: params.idCita || '',
       consultorio: params.consultorio || '',
-      nombres: `${mockUser.firstName} ${mockUser.lastName}`,
-      celular: mockUser.phone || '',
-      correo: mockUser.email || '',
+      nombres: userName,
+      celular: userPhone,
+      correo: userEmail,
       especialidad: params.specialtyId || '',
       especialidadNombre: params.specialtyName || '',
       medico: params.doctorCode || '',
@@ -63,7 +82,7 @@ export default function ConfirmAppointmentScreen() {
       lugar: params.lugar || null,
     };
 
-    const result = await submitSolicitud(payload, '');
+    const result = await submitSolicitud(payload, params.sessionToken);
 
     setSubmitting(false);
 
@@ -72,10 +91,16 @@ export default function ConfirmAppointmentScreen() {
       setReservationCode(code);
       setConfirmed(true);
     } else {
-      // Even on error, show as registered (mock fallback)
-      const code = `SOL-${Date.now().toString().slice(-8)}`;
-      setReservationCode(code);
-      setConfirmed(true);
+      const errorMsg = result.error || '';
+      if (errorMsg.includes('token') || errorMsg.includes('expirado') || errorMsg.includes('expired')) {
+        Alert.alert(
+          'Sesión expirada',
+          'El tiempo para solicitar la cita ha expirado. Debe iniciar nuevamente.',
+          [{ text: 'Aceptar', onPress: () => router.replace('/citas') }],
+        );
+      } else {
+        Alert.alert('Error', `No se pudo registrar la solicitud. ${errorMsg}`);
+      }
     }
   };
 
@@ -109,7 +134,7 @@ export default function ConfirmAppointmentScreen() {
           <DetailRow icon="🕐" label="Hora" value={`${params.time}hs`} />
           <DetailRow icon="📍" label="Ubicación" value={locationName} />
           <DetailRow icon="🏥" label="Consultorio" value={params.consultorio || 'Por asignar'} />
-          <DetailRow icon="👤" label="Paciente" value={`${mockUser.firstName} ${mockUser.lastName}`} />
+          <DetailRow icon="👤" label="Paciente" value={userName} />
           <DetailRow icon="📋" label="Tipo de Atención" value={params.patientType || ''} />
         </View>
 
@@ -153,8 +178,8 @@ export default function ConfirmAppointmentScreen() {
 
         <View style={styles.patientCard}>
           <Text style={styles.patientTitle}>Datos del Paciente</Text>
-          <DetailRow icon="👤" label="Nombre" value={`${mockUser.firstName} ${mockUser.lastName}`} />
-          <DetailRow icon="📄" label="DNI" value={mockUser.documentNumber} />
+          <DetailRow icon="👤" label="Nombre" value={userName} />
+          <DetailRow icon="📄" label="DNI" value={userDoc} />
           <DetailRow icon="📋" label="Tipo de Atención" value={params.patientType || ''} />
           <DetailRow icon="📝" label="Tipo de Cita" value={params.appointmentType || ''} />
         </View>

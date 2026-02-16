@@ -41,7 +41,7 @@ export default function LoginScreen() {
       // Login with 5s timeout
       const loginPromise = login({ email: email.trim(), password });
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT')), 5000)
+        setTimeout(() => reject(new Error('TIMEOUT')), 15000)
       );
       const tokens = await Promise.race([loginPromise, timeoutPromise]);
       await SessionManager.saveTokens(tokens);
@@ -75,8 +75,8 @@ export default function LoginScreen() {
         );
       } else if (error.response?.status === 400) {
         Alert.alert(
-          'Credenciales incorrectas',
-          'El correo electrónico o la contraseña son incorrectos. Por favor verifique sus datos.',
+          'Usuario inválido',
+          'Revise si su contraseña o correo electrónico es correcto.',
         );
       } else if (error.response?.status === 403) {
         Alert.alert(

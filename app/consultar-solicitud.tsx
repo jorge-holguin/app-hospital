@@ -1,7 +1,8 @@
-import { getAppointmentStatusConfig, mockAppointments, mockUser } from '@/constants/mockData';
+import { getAppointmentStatusConfig, mockAppointments } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { SessionManager, UserData } from '@/utils/session';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -13,6 +14,13 @@ import {
 export default function ConsultarSolicitudScreen() {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    SessionManager.getUserData().then(setUser);
+  }, []);
+
+  const userName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -22,7 +30,7 @@ export default function ConsultarSolicitudScreen() {
         </TouchableOpacity>
         <Text style={styles.title}>Mis Solicitudes de Cita</Text>
         <Text style={styles.subtitle}>
-          Solicitudes de {mockUser.firstName} {mockUser.lastName} (DNI: {mockUser.documentNumber})
+          Solicitudes de {userName} {user?.nroDocumento ? `(DNI: ${user.nroDocumento})` : ''}
         </Text>
       </View>
 

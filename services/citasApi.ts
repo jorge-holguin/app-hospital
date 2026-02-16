@@ -1,9 +1,11 @@
 /**
  * Citas API Service
  * Base URL: https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas
+ * Solicitudes: https://citas.hospitalchosica.gob.pe/api/api/v1/solicitudes
  */
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas';
+const SOLICITUDES_BASE = BASE_URL.replace('/app-citas', '/solicitudes');
 
 // ── Types ────────────────────────────────────────────────
 export interface Especialidad {
@@ -87,6 +89,20 @@ export function getMonthRange(date: Date): { fechaInicio: string; fechaFin: stri
 
 // ── API calls ────────────────────────────────────────────
 
+/**
+ * Get a session token for appointment booking (10 min expiration).
+ */
+export async function getSessionToken(): Promise<{ token: string } | null> {
+  try {
+    const res = await fetch(`${SOLICITUDES_BASE}/sesion`, { method: 'POST' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error('[API] getSessionToken error:', error);
+    return null;
+  }
+}
+
 export async function fetchEspecialidades(): Promise<Especialidad[]> {
   try {
     const res = await fetch(`${BASE_URL}/especialidades`);
@@ -115,10 +131,12 @@ export async function fetchCitas(
   idEspecialidad: string,
   medicoId: string,
   turnoConsulta: string,
+  fechaInicio?: string,
+  fechaFin?: string,
 ): Promise<CitaSlot[]> {
   try {
-    const { fechaInicio, fechaFin } = getDateRange();
-    const url = `${BASE_URL}/citas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&medicoId=${encodeURIComponent(medicoId)}&turnoConsulta=${encodeURIComponent(turnoConsulta)}&idEspecialidad=${encodeURIComponent(idEspecialidad)}`;
+    const range = fechaInicio && fechaFin ? { fechaInicio, fechaFin } : getDateRange();
+    const url = `${BASE_URL}/citas?fechaInicio=${range.fechaInicio}&fechaFin=${range.fechaFin}&medicoId=${encodeURIComponent(medicoId)}&turnoConsulta=${encodeURIComponent(turnoConsulta)}&idEspecialidad=${encodeURIComponent(idEspecialidad)}`;
     console.log('[API] fetchCitas URL:', url);
     const res = await fetch(url);
     const text = await res.text();
@@ -159,12 +177,41 @@ export async function fetchFechasConsultorios(
   }
 }
 
+/**
+ * Fetch available citas by date (por-fecha endpoint).
+ */
+export async function fetchCitasPorFecha(
+  fecha: string,
+  turnoConsulta: string,
+  idEspecialidad: string,
+  horaInicio: string,
+  horaFin: string,
+): Promise<CitaSlot[]> {
+  try {
+    const url = `${BASE_URL}/por-fecha?fecha=${encodeURIComponent(fecha)}&turnoConsulta=${encodeURIComponent(turnoConsulta)}&idEspecialidad=${encodeURIComponent(idEspecialidad)}&horaInicio=${encodeURIComponent(horaInicio)}&horaFin=${encodeURIComponent(horaFin)}`;
+    console.log('[API] fetchCitasPorFecha URL:', url);
+    const res = await fetch(url);
+    const text = await res.text();
+    if (!text) return [];
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.warn('[API] fetchCitasPorFecha non-JSON response:', text.substring(0, 200));
+      return [];
+    }
+  } catch (error) {
+    console.error('[API] fetchCitasPorFecha error:', error);
+    return [];
+  }
+}
+
 export async function submitSolicitud(
   payload: SolicitudPayload,
-  token: string = '',
+  token: string,
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const url = `${BASE_URL}/v1/solicitudes?token=${token}`;
+    const url = `${SOLICITUDES_BASE}?token=${encodeURIComponent(token)}`;
+    console.log('[API] submitSolicitud URL:', url);
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

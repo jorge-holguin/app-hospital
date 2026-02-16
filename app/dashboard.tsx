@@ -104,16 +104,16 @@ export default function DashboardScreen() {
 
       {/* Menu */}
       <MenuCard
-        title="Órdenes Médicas"
-        subtitle="Próximamente"
-        icon="🔬"
-        disabled
-      />
-      <MenuCard
         title="Citas Médicas"
         subtitle="Solicitar, consultar y gestionar"
         icon="📅"
         onPress={() => router.push('/citas')}
+      />
+      <MenuCard
+        title="Órdenes Médicas"
+        subtitle="Próximamente"
+        icon="🔬"
+        disabled
       />
       <MenuCard
         title="Informes"

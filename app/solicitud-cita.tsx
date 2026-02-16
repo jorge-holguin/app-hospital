@@ -1,9 +1,11 @@
 import type { AppointmentType, PatientType } from '@/constants/mockData';
-import { mockUser } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { getSessionToken } from '@/services/citasApi';
+import { SessionManager, UserData } from '@/utils/session';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator, Alert,
     ScrollView,
     StyleSheet,
     Text, TouchableOpacity,
@@ -27,6 +29,57 @@ export default function SolicitudCitaScreen() {
   const [step, setStep] = useState<1 | 2>(1);
   const [patientType, setPatientType] = useState<PatientType | null>(null);
   const [appointmentType, setAppointmentType] = useState<AppointmentType | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(600); // 10 min in seconds
+  const [loadingToken, setLoadingToken] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    initScreen();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  const initScreen = async () => {
+    const userData = await SessionManager.getUserData();
+    setUser(userData);
+    setLoadingToken(true);
+    const result = await getSessionToken();
+    if (result?.token) {
+      setSessionToken(result.token);
+      setTimeLeft(600);
+      startTimer();
+    } else {
+      Alert.alert('Error', 'No se pudo obtener el token de sesión. Intente nuevamente.', [
+        { text: 'Volver', onPress: () => router.back() },
+      ]);
+    }
+    setLoadingToken(false);
+  };
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          Alert.alert(
+            'Sesión expirada',
+            'El tiempo para solicitar la cita ha expirado. Debe iniciar nuevamente.',
+            [{ text: 'Aceptar', onPress: () => router.replace('/citas') }],
+          );
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const formatTime = (s: number) => {
+    const min = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  };
 
   const handleContinue = () => {
     if (step === 1 && patientType) {
@@ -34,12 +87,21 @@ export default function SolicitudCitaScreen() {
     } else if (step === 2 && appointmentType) {
       router.push({
         pathname: '/select-specialty',
-        params: { patientType, appointmentType },
+        params: { patientType, appointmentType, sessionToken: sessionToken || '' },
       });
     }
   };
 
   const canContinue = step === 1 ? !!patientType : !!appointmentType;
+
+  if (loadingToken) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={HospitalColors.primary} />
+        <Text style={{ fontSize: 14, color: HospitalColors.textLight, marginTop: 12 }}>Iniciando sesión de cita...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -60,11 +122,22 @@ export default function SolicitudCitaScreen() {
           <View style={[styles.progressDot, step === 2 && styles.progressDotActive]} />
         </View>
 
+        {/* Session timer */}
+        <View style={[styles.infoBox, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderColor: timeLeft < 120 ? '#FBBF24' : HospitalColors.border, backgroundColor: timeLeft < 120 ? '#FFFBEB' : HospitalColors.white }]}>
+          <View>
+            <Text style={styles.infoLabel}>Tiempo restante</Text>
+            <Text style={[styles.infoValue, { color: timeLeft < 120 ? '#DC2626' : HospitalColors.primary, fontSize: 20 }]}>
+              {formatTime(timeLeft)}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 24 }}>{timeLeft < 120 ? '⚠️' : '⏱️'}</Text>
+        </View>
+
         {/* Patient info */}
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Paciente</Text>
-          <Text style={styles.infoValue}>{mockUser.firstName} {mockUser.lastName}</Text>
-          <Text style={styles.infoSub}>DNI: {mockUser.documentNumber}</Text>
+          <Text style={styles.infoValue}>{user?.nombres || ''} {user?.apellidos || ''}</Text>
+          <Text style={styles.infoSub}>{user?.nroDocumento ? `DNI: ${user.nroDocumento}` : user?.email || ''}</Text>
         </View>
 
         {step === 1 ? (

@@ -1,8 +1,11 @@
-import { getRefStatusConfig, mockReferences, mockUser } from '@/constants/mockData';
+import { getRefStatusConfig } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { consultarReferencias, mapTipoDocumentoToCode, ReferenciaItem } from '@/services/referenciasApi';
+import { SessionManager, UserData } from '@/utils/session';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text, TouchableOpacity,
@@ -23,6 +26,38 @@ const REF_DETAIL_MAP: Record<string, { title: string; desc: string; canSchedule:
 export default function ConsultarReferenciaScreen() {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [references, setReferences] = useState<ReferenciaItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userData = await SessionManager.getUserData();
+      setUser(userData);
+      if (!userData?.nroDocumento) {
+        setError('No se encontró su número de documento. Actualice su perfil.');
+        setLoading(false);
+        return;
+      }
+      const tipoDoc = mapTipoDocumentoToCode(userData.tipoDocumento);
+      const data = await consultarReferencias(userData.nroDocumento, tipoDoc);
+      setReferences(data);
+    } catch (err: any) {
+      console.error('Error fetching references:', err);
+      setError('No se pudieron cargar las referencias. Verifique su conexión.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const userName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -31,70 +66,97 @@ export default function ConsultarReferenciaScreen() {
           <Text style={styles.backBtn}>← Atrás</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Consultar Referencias</Text>
-        <Text style={styles.subtitle}>Referencias médicas de {mockUser.firstName} {mockUser.lastName}</Text>
+        <Text style={styles.subtitle}>Referencias médicas de {userName || 'Paciente'}</Text>
       </View>
 
-      <Text style={styles.resultCount}>
-        {mockReferences.length} referencia{mockReferences.length !== 1 ? 's' : ''} encontrada{mockReferences.length !== 1 ? 's' : ''}
-      </Text>
+      {loading ? (
+        <View style={{ alignItems: 'center', paddingTop: 60 }}>
+          <ActivityIndicator size="large" color={HospitalColors.primary} />
+          <Text style={{ fontSize: 14, color: HospitalColors.textLight, marginTop: 12 }}>Cargando referencias...</Text>
+        </View>
+      ) : error ? (
+        <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>⚠️</Text>
+          <Text style={{ fontSize: 15, color: HospitalColors.textSecondary, textAlign: 'center' }}>{error}</Text>
+          <TouchableOpacity onPress={loadData} style={{ marginTop: 16, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: HospitalColors.primarySoft, borderRadius: 10 }}>
+            <Text style={{ color: HospitalColors.primary, fontWeight: '600' }}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.resultCount}>
+            {references.length} referencia{references.length !== 1 ? 's' : ''} encontrada{references.length !== 1 ? 's' : ''}
+          </Text>
 
-      {mockReferences.map((ref) => {
-        const statusCfg = getRefStatusConfig(ref.codigoEstado);
-        const detail = REF_DETAIL_MAP[ref.codigoEstado] || { title: 'Desconocido', desc: '', canSchedule: false };
-        const isExpanded = expandedId === ref.id;
-
-        return (
-          <View key={ref.id} style={styles.refCard}>
-            <View style={styles.cardTop}>
-              <View style={styles.cardTopLeft}>
-                <View style={[styles.badge, { backgroundColor: statusCfg.bg }]}>
-                  <Text style={[styles.badgeText, { color: statusCfg.text }]}>{statusCfg.label}</Text>
-                </View>
-                <Text style={styles.refDate}>{ref.date}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setExpandedId(isExpanded ? null : ref.id)}>
-                <Text style={styles.expandBtn}>{isExpanded ? '▲ Ocultar' : '▼ Detalle'}</Text>
-              </TouchableOpacity>
+          {references.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingTop: 40 }}>
+              <Text style={{ fontSize: 40, marginBottom: 12 }}>📄</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: HospitalColors.textSecondary }}>No se encontraron referencias</Text>
+              <Text style={{ fontSize: 13, color: HospitalColors.textLight, marginTop: 4 }}>No tiene referencias médicas registradas</Text>
             </View>
+          ) : (
+            references.map((ref, index) => {
+              const codigoEstado = ref.codigoEstado || '2';
+              const statusCfg = getRefStatusConfig(codigoEstado);
+              const detail = REF_DETAIL_MAP[codigoEstado] || { title: 'Desconocido', desc: '', canSchedule: false };
+              const refId = ref.id || ref.numeroReferencia || String(index);
+              const isExpanded = expandedId === refId;
 
-            <Text style={styles.refSpecialty}>{ref.specialty}</Text>
-            <Text style={styles.refHospital}>Origen: {ref.hospital}</Text>
-            {ref.numeroReferencia && (
-              <Text style={styles.refNumber}>N° Ref: {ref.numeroReferencia}</Text>
-            )}
-
-            {isExpanded && (
-              <View style={styles.expandedSection}>
-                <View style={[styles.detailBox, { borderLeftColor: statusCfg.text }]}>
-                  <Text style={styles.detailTitle}>{detail.title}</Text>
-                  <Text style={styles.detailDesc}>{detail.desc}</Text>
-                </View>
-
-                {ref.diagnostico && (
-                  <View style={styles.diagBox}>
-                    <Text style={styles.diagLabel}>Diagnóstico</Text>
-                    <Text style={styles.diagValue}>{ref.diagnostico}</Text>
+              return (
+                <View key={refId} style={styles.refCard}>
+                  <View style={styles.cardTop}>
+                    <View style={styles.cardTopLeft}>
+                      <View style={[styles.badge, { backgroundColor: statusCfg.bg }]}>
+                        <Text style={[styles.badgeText, { color: statusCfg.text }]}>{statusCfg.label}</Text>
+                      </View>
+                      <Text style={styles.refDate}>{ref.fecha || ''}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setExpandedId(isExpanded ? null : refId)}>
+                      <Text style={styles.expandBtn}>{isExpanded ? '▲ Ocultar' : '▼ Detalle'}</Text>
+                    </TouchableOpacity>
                   </View>
-                )}
 
-                {ref.profesionalOrigen && (
-                  <Text style={styles.profOrigen}>Profesional: {ref.profesionalOrigen}</Text>
-                )}
+                  <Text style={styles.refSpecialty}>{ref.especialidadDestino || ref.especialidad || 'Especialidad'}</Text>
+                  <Text style={styles.refHospital}>Origen: {ref.establecimientoOrigen || 'No especificado'}</Text>
+                  {ref.numeroReferencia && (
+                    <Text style={styles.refNumber}>N° Ref: {ref.numeroReferencia}</Text>
+                  )}
 
-                {detail.canSchedule && (
-                  <TouchableOpacity
-                    style={styles.scheduleBtn}
-                    onPress={() => router.push('/solicitud-cita')}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.scheduleBtnText}>Solicitar Cita</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        );
-      })}
+                  {isExpanded && (
+                    <View style={styles.expandedSection}>
+                      <View style={[styles.detailBox, { borderLeftColor: statusCfg.text }]}>
+                        <Text style={styles.detailTitle}>{detail.title}</Text>
+                        <Text style={styles.detailDesc}>{detail.desc}</Text>
+                      </View>
+
+                      {ref.diagnostico && (
+                        <View style={styles.diagBox}>
+                          <Text style={styles.diagLabel}>Diagnóstico</Text>
+                          <Text style={styles.diagValue}>{ref.diagnostico}</Text>
+                        </View>
+                      )}
+
+                      {ref.profesionalOrigen && (
+                        <Text style={styles.profOrigen}>Profesional: {ref.profesionalOrigen}</Text>
+                      )}
+
+                      {detail.canSchedule && (
+                        <TouchableOpacity
+                          style={styles.scheduleBtn}
+                          onPress={() => router.push('/solicitud-cita')}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.scheduleBtnText}>Solicitar Cita</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })
+          )}
+        </>
+      )}
     </ScrollView>
   );
 }

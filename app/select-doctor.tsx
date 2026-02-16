@@ -15,6 +15,7 @@ export default function SelectDoctorScreen() {
   const params = useLocalSearchParams<{
     patientType: string; appointmentType: string;
     specialtyId: string; specialtyName: string;
+    sessionToken: string;
   }>();
   const [search, setSearch] = useState('');
   const [doctors, setDoctors] = useState<Medico[]>([]);
