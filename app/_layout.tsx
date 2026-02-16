@@ -39,6 +39,9 @@ export default function RootLayout() {
         <Stack.Screen name="select-datetime" />
         <Stack.Screen name="confirm-appointment" />
         <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="change-password" />
+        <Stack.Screen name="triage-history" />
+        <Stack.Screen name="triage-detail" />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

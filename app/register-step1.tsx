@@ -17,6 +17,8 @@ export default function RegisterStep1Screen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleNext = () => {
     if (!nombres.trim() || !apellidos.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -85,24 +87,34 @@ export default function RegisterStep1Screen() {
           />
 
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor={HospitalColors.textLight}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', height: 50, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 12, backgroundColor: HospitalColors.inputBg, marginBottom: 16, paddingHorizontal: 14 }}>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: HospitalColors.textPrimary }}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor={HospitalColors.textLight}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={{ fontSize: 18 }}>{showPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Repetir contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Confirma tu contraseña"
-            placeholderTextColor={HospitalColors.textLight}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', height: 50, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 12, backgroundColor: HospitalColors.inputBg, marginBottom: 16, paddingHorizontal: 14 }}>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: HospitalColors.textPrimary }}
+              placeholder="Confirma tu contraseña"
+              placeholderTextColor={HospitalColors.textLight}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+            />
+            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={{ fontSize: 18 }}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.85}>
             <Text style={styles.nextButtonText}>Siguiente</Text>

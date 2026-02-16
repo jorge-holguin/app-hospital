@@ -20,10 +20,16 @@ export interface AuthTokens {
 }
 
 export interface UserData {
+  id?: number;
   email: string;
   nombres?: string;
   apellidos?: string;
   celular?: string;
+  fechaNacimiento?: string | null;
+  tipoDocumento?: string | null;
+  nroDocumento?: string | null;
+  profileImage?: string | null;
+  role?: string;
 }
 
 export const SessionManager = {

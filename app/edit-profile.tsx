@@ -1,26 +1,57 @@
-import { mockUser } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { updateUser, uploadProfileImage } from '@/services/userApi';
+import { SessionManager } from '@/utils/session';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert, Image,
-  KeyboardAvoidingView, Platform,
-  ScrollView,
-  StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View,
+    ActivityIndicator, Alert, Image,
+    KeyboardAvoidingView, Platform,
+    ScrollView,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState(mockUser.firstName);
-  const [lastName, setLastName] = useState(mockUser.lastName);
-  const [phone, setPhone] = useState(mockUser.phone || '987654321');
-  const [email, setEmail] = useState(mockUser.email || 'usuario@ejemplo.com');
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [celular, setCelular] = useState('');
+  const [email, setEmail] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [nroDocumento, setNroDocumento] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`;
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userData = await SessionManager.getUserData();
+      if (userData) {
+        setUserId(userData.id || null);
+        setNombres(userData.nombres || '');
+        setApellidos(userData.apellidos || '');
+        setCelular(userData.celular || '');
+        setEmail(userData.email || '');
+        setFechaNacimiento(userData.fechaNacimiento || '');
+        setNroDocumento(userData.nroDocumento || '');
+        setProfileImage(userData.profileImage || null);
+      }
+    } catch (e) {
+      console.error('Error loading user data:', e);
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const initials = `${(nombres || '').charAt(0)}${(apellidos || '').charAt(0)}`.toUpperCase();
 
   const pickImageFromGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -35,7 +66,7 @@ export default function EditProfileScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
+      await handleUploadImage(result.assets[0].uri);
     }
   };
 
@@ -51,7 +82,31 @@ export default function EditProfileScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setProfileImage(result.assets[0].uri);
+      await handleUploadImage(result.assets[0].uri);
+    }
+  };
+
+  const handleUploadImage = async (uri: string) => {
+    if (!userId) {
+      setProfileImage(uri);
+      return;
+    }
+    setLoadingImage(true);
+    try {
+      await uploadProfileImage(userId, uri);
+      setProfileImage(uri);
+      // Update session
+      const userData = await SessionManager.getUserData();
+      if (userData) {
+        await SessionManager.saveUserData({ ...userData, profileImage: uri });
+      }
+      Alert.alert('Éxito', 'Foto de perfil actualizada.');
+    } catch (error: any) {
+      console.error('Upload image error:', error);
+      Alert.alert('Error', 'No se pudo subir la imagen. Intente nuevamente.');
+      setProfileImage(uri); // Still show locally
+    } finally {
+      setLoadingImage(false);
     }
   };
 
@@ -63,19 +118,58 @@ export default function EditProfileScreen() {
     ]);
   };
 
-  const handleSave = () => {
-    if (!firstName.trim() || !lastName.trim()) {
+  const handleSave = async () => {
+    if (!nombres.trim() || !apellidos.trim()) {
       Alert.alert('Error', 'El nombre y apellido son obligatorios.');
       return;
     }
-    if (phone.length < 9) {
+    if (celular.length < 9) {
       Alert.alert('Error', 'El celular debe tener al menos 9 dígitos.');
       return;
     }
-    Alert.alert('Perfil actualizado', 'Tus datos han sido actualizados correctamente.', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    if (!userId) {
+      Alert.alert('Error', 'No se pudo identificar al usuario. Cierre sesión e ingrese nuevamente.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateUser(userId, {
+        nombres: nombres.trim(),
+        apellidos: apellidos.trim(),
+        email: email.trim(),
+        celular: celular.trim(),
+        fechaNacimiento: fechaNacimiento || '2000-01-01',
+        termsAccepted: true,
+      });
+      // Update local session
+      const userData = await SessionManager.getUserData();
+      await SessionManager.saveUserData({
+        ...userData,
+        email: email.trim(),
+        nombres: nombres.trim(),
+        apellidos: apellidos.trim(),
+        celular: celular.trim(),
+        fechaNacimiento,
+      });
+      Alert.alert('Perfil actualizado', 'Tus datos han sido actualizados correctamente.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (error: any) {
+      const msg = error.response?.data?.message || error.response?.data?.error || 'Error al actualizar el perfil.';
+      Alert.alert('Error', msg);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (initialLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={HospitalColors.primary} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -91,7 +185,11 @@ export default function EditProfileScreen() {
         {/* Avatar section */}
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8}>
-            {profileImage ? (
+            {loadingImage ? (
+              <View style={styles.avatar}>
+                <ActivityIndicator color={HospitalColors.primary} />
+              </View>
+            ) : profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatar}>
@@ -109,8 +207,8 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>Nombre(s)</Text>
           <TextInput
             style={styles.input}
-            value={firstName}
-            onChangeText={setFirstName}
+            value={nombres}
+            onChangeText={setNombres}
             placeholder="Tu nombre"
             placeholderTextColor={HospitalColors.textLight}
           />
@@ -118,8 +216,8 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>Apellidos</Text>
           <TextInput
             style={styles.input}
-            value={lastName}
-            onChangeText={setLastName}
+            value={apellidos}
+            onChangeText={setApellidos}
             placeholder="Tu apellido"
             placeholderTextColor={HospitalColors.textLight}
           />
@@ -127,8 +225,8 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>Número de celular</Text>
           <TextInput
             style={styles.input}
-            value={phone}
-            onChangeText={setPhone}
+            value={celular}
+            onChangeText={setCelular}
             placeholder="Ej: 987654321"
             placeholderTextColor={HospitalColors.textLight}
             keyboardType="phone-pad"
@@ -146,16 +244,39 @@ export default function EditProfileScreen() {
             autoCapitalize="none"
           />
 
-          {/* Read-only fields */}
-          <Text style={styles.label}>DNI</Text>
+          <Text style={styles.label}>Fecha de nacimiento</Text>
           <View style={styles.readOnlyInput}>
-            <Text style={styles.readOnlyText}>{mockUser.documentNumber}</Text>
-            <Text style={styles.readOnlyBadge}>No editable</Text>
+            <Text style={styles.readOnlyText}>{fechaNacimiento || 'No registrada'}</Text>
           </View>
+
+          {nroDocumento ? (
+            <>
+              <Text style={styles.label}>Nº Documento</Text>
+              <View style={styles.readOnlyInput}>
+                <Text style={styles.readOnlyText}>{nroDocumento}</Text>
+                <Text style={styles.readOnlyBadge}>No editable</Text>
+              </View>
+            </>
+          ) : null}
         </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
-          <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+        {/* Change password button */}
+        <TouchableOpacity
+          style={styles.changePasswordBtn}
+          onPress={() => router.push('/change-password')}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 18, marginRight: 10 }}>🔒</Text>
+          <Text style={styles.changePasswordText}>Cambiar contraseña</Text>
+          <Text style={{ fontSize: 18, color: HospitalColors.textLight, marginLeft: 'auto' }}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color={HospitalColors.white} />
+          ) : (
+            <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.cancelBtn} onPress={() => router.back()} activeOpacity={0.7}>
@@ -209,6 +330,14 @@ const styles = StyleSheet.create({
   },
   readOnlyText: { fontSize: 15, color: HospitalColors.textLight },
   readOnlyBadge: { fontSize: 10, color: HospitalColors.textLight, fontWeight: '600' },
+  changePasswordBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: HospitalColors.white, borderRadius: 14, padding: 16,
+    marginBottom: 16, borderWidth: 1, borderColor: HospitalColors.border,
+  },
+  changePasswordText: {
+    fontSize: 15, fontWeight: '600', color: HospitalColors.textPrimary,
+  },
   saveBtn: {
     backgroundColor: HospitalColors.primary, height: 52, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center', marginBottom: 12,

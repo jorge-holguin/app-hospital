@@ -6,8 +6,8 @@
  * - If refresh fails, clears session and redirects to login.
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { SessionManager } from '@/utils/session';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { router } from 'expo-router';
 
 const AUTH_BASE_URL =
@@ -26,6 +26,14 @@ export const apiClient = axios.create({
 // ── Auth API client (for auth endpoints — no interceptor to avoid loops) ──
 export const authClient = axios.create({
   baseURL: AUTH_BASE_URL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// ── User API client (for /api/users endpoints — uses token interceptor) ──
+const USER_BASE_URL = AUTH_BASE_URL.replace('/auth', '/users');
+export const userClient = axios.create({
+  baseURL: USER_BASE_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -49,14 +57,22 @@ function processQueue(error: any, token: string | null = null) {
 }
 
 // ── Request interceptor: attach access token ──────────────────
-apiClient.interceptors.request.use(
-  async (config: InternalAxiosRequestConfig) => {
-    const accessToken = await SessionManager.getAccessToken();
+function attachToken(config: InternalAxiosRequestConfig) {
+  return SessionManager.getAccessToken().then((accessToken) => {
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
-  },
+  });
+}
+
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => attachToken(config),
+  (error) => Promise.reject(error),
+);
+
+userClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => attachToken(config),
   (error) => Promise.reject(error),
 );
 

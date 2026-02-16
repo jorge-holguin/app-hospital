@@ -1,8 +1,9 @@
-import { mockTriage, mockUser } from '@/constants/mockData';
+import { mockTriage } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
-import { SessionManager } from '@/utils/session';
+import { SessionManager, UserData } from '@/utils/session';
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const MenuCard = ({ title, subtitle, icon, onPress, disabled }: {
   title: string; subtitle: string; icon: string; onPress?: () => void; disabled?: boolean;
@@ -26,7 +27,15 @@ const MenuCard = ({ title, subtitle, icon, onPress, disabled }: {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const initials = `${mockUser.firstName.charAt(0)}${mockUser.lastName.charAt(0)}`;
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    SessionManager.getUserData().then(setUser);
+  }, []);
+
+  const nombres = user?.nombres || '';
+  const apellidos = user?.apellidos || '';
+  const initials = `${nombres.charAt(0)}${apellidos.charAt(0)}`.toUpperCase() || '??';
 
   const handleLogout = () => {
     Alert.alert(
@@ -46,12 +55,16 @@ export default function DashboardScreen() {
       {/* Profile card */}
       <View style={styles.profileCard}>
         <View style={styles.profileRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          {user?.profileImage ? (
+            <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          )}
           <View style={styles.profileInfo}>
             <Text style={styles.greeting}>Bienvenido</Text>
-            <Text style={styles.userName}>{mockUser.firstName} {mockUser.lastName}</Text>
+            <Text style={styles.userName}>{nombres} {apellidos}</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -65,7 +78,11 @@ export default function DashboardScreen() {
       </View>
 
       {/* Triage Card */}
-      <View style={styles.triageCard}>
+      <TouchableOpacity
+        style={styles.triageCard}
+        onPress={() => router.push('/triage-history')}
+        activeOpacity={0.7}
+      >
         <View style={styles.triageHeader}>
           <Text style={styles.triageTitle}>Último Triaje</Text>
           <Text style={styles.triageDate}>{mockTriage.fecha}</Text>
@@ -82,14 +99,15 @@ export default function DashboardScreen() {
             </View>
           ))}
         </View>
-      </View>
+        <Text style={{ textAlign: 'center', fontSize: 12, color: HospitalColors.primary, fontWeight: '600', marginTop: 12 }}>Ver historial de triaje ›</Text>
+      </TouchableOpacity>
 
       {/* Menu */}
       <MenuCard
         title="Órdenes Médicas"
-        subtitle="Laboratorio, Rayos X, Ecografía..."
+        subtitle="Próximamente"
         icon="🔬"
-        onPress={() => router.push('/orders')}
+        disabled
       />
       <MenuCard
         title="Citas Médicas"
@@ -133,6 +151,10 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: HospitalColors.border,
   },
   avatarText: { color: HospitalColors.textSecondary, fontSize: 22, fontWeight: '700' },
+  avatarImage: {
+    width: 64, height: 64, borderRadius: 32,
+    borderWidth: 2, borderColor: HospitalColors.border,
+  },
   profileInfo: { marginLeft: 16, flex: 1 },
   greeting: { fontSize: 14, color: HospitalColors.textLight },
   userName: { fontSize: 18, fontWeight: '700', color: HospitalColors.textPrimary, marginTop: 2 },

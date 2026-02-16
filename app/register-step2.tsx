@@ -52,7 +52,25 @@ export default function RegisterStep2Screen() {
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Date picker state
+  const [pickerYear, setPickerYear] = useState(1990);
+  const [pickerMonth, setPickerMonth] = useState(1);
+  const [pickerDay, setPickerDay] = useState(1);
+
+  const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const daysInMonth = new Date(pickerYear, pickerMonth, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const handleDateConfirm = () => {
+    const m = String(pickerMonth).padStart(2, '0');
+    const d = String(pickerDay > daysInMonth ? daysInMonth : pickerDay).padStart(2, '0');
+    setFechaNacimiento(`${pickerYear}-${m}-${d}`);
+    setShowDatePicker(false);
+  };
 
   const handleRegister = async () => {
     if (!celular.trim() || !fechaNacimiento.trim()) {
@@ -142,15 +160,15 @@ export default function RegisterStep2Screen() {
           />
 
           <Text style={styles.label}>Fecha de nacimiento</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="AAAA-MM-DD (ej: 1990-05-15)"
-            placeholderTextColor={HospitalColors.textLight}
-            value={fechaNacimiento}
-            onChangeText={setFechaNacimiento}
-            keyboardType="numeric"
-            maxLength={10}
-          />
+          <TouchableOpacity
+            style={[styles.input, { justifyContent: 'center' }]}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 15, color: fechaNacimiento ? HospitalColors.textPrimary : HospitalColors.textLight }}>
+              {fechaNacimiento || 'Seleccionar fecha de nacimiento'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Terms checkbox */}
           <TouchableOpacity style={styles.checkboxRow} onPress={() => setTermsAccepted(!termsAccepted)}>
@@ -187,6 +205,63 @@ export default function RegisterStep2Screen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Date Picker Modal */}
+      <Modal visible={showDatePicker} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: HospitalColors.white, borderRadius: 20, padding: 24, width: '85%', maxWidth: 340 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: HospitalColors.textPrimary, textAlign: 'center', marginBottom: 20 }}>
+              Fecha de nacimiento
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+              {/* Year */}
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: HospitalColors.textLight, marginBottom: 6, textAlign: 'center' }}>Año</Text>
+                <ScrollView style={{ height: 120, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 10, backgroundColor: HospitalColors.inputBg }}>
+                  {years.map(y => (
+                    <TouchableOpacity key={y} onPress={() => setPickerYear(y)} style={{ paddingVertical: 8, paddingHorizontal: 6, backgroundColor: y === pickerYear ? HospitalColors.primarySoft : 'transparent', borderRadius: 6 }}>
+                      <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: y === pickerYear ? '700' : '400', color: y === pickerYear ? HospitalColors.primary : HospitalColors.textPrimary }}>{y}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              {/* Month */}
+              <View style={{ flex: 1, marginHorizontal: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: HospitalColors.textLight, marginBottom: 6, textAlign: 'center' }}>Mes</Text>
+                <ScrollView style={{ height: 120, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 10, backgroundColor: HospitalColors.inputBg }}>
+                  {months.map(m => (
+                    <TouchableOpacity key={m} onPress={() => setPickerMonth(m)} style={{ paddingVertical: 8, paddingHorizontal: 6, backgroundColor: m === pickerMonth ? HospitalColors.primarySoft : 'transparent', borderRadius: 6 }}>
+                      <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: m === pickerMonth ? '700' : '400', color: m === pickerMonth ? HospitalColors.primary : HospitalColors.textPrimary }}>{String(m).padStart(2, '0')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+              {/* Day */}
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: HospitalColors.textLight, marginBottom: 6, textAlign: 'center' }}>Día</Text>
+                <ScrollView style={{ height: 120, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 10, backgroundColor: HospitalColors.inputBg }}>
+                  {days.map(d => (
+                    <TouchableOpacity key={d} onPress={() => setPickerDay(d)} style={{ paddingVertical: 8, paddingHorizontal: 6, backgroundColor: d === pickerDay ? HospitalColors.primarySoft : 'transparent', borderRadius: 6 }}>
+                      <Text style={{ textAlign: 'center', fontSize: 14, fontWeight: d === pickerDay ? '700' : '400', color: d === pickerDay ? HospitalColors.primary : HospitalColors.textPrimary }}>{String(d).padStart(2, '0')}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+            <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: '600', color: HospitalColors.textPrimary, marginBottom: 16 }}>
+              {pickerYear}-{String(pickerMonth).padStart(2, '0')}-{String(Math.min(pickerDay, daysInMonth)).padStart(2, '0')}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)} style={{ flex: 1, height: 44, borderRadius: 12, borderWidth: 1, borderColor: HospitalColors.border, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: HospitalColors.textSecondary }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDateConfirm} style={{ flex: 1, height: 44, borderRadius: 12, backgroundColor: HospitalColors.primary, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: HospitalColors.white }}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Terms & Conditions Modal */}
       <Modal visible={showTermsModal} animationType="slide" presentationStyle="pageSheet">

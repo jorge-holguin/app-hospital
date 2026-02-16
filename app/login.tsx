@@ -1,17 +1,18 @@
 import { HospitalColors } from '@/constants/theme';
 import { login } from '@/services/authApi';
+import { getUserByEmail } from '@/services/userApi';
 import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView, Platform,
-  ScrollView,
-  StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView, Platform,
+    ScrollView,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function LoginScreen() {
@@ -19,25 +20,81 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Por favor ingrese su correo electrónico y contraseña.');
+    if (!email.trim()) {
+      Alert.alert('Campo requerido', 'Por favor ingrese su correo electrónico.');
+      return;
+    }
+    if (!email.includes('@')) {
+      Alert.alert('Correo inválido', 'Ingrese un correo electrónico válido (ej: usuario@correo.com).');
+      return;
+    }
+    if (!password.trim()) {
+      Alert.alert('Campo requerido', 'Por favor ingrese su contraseña.');
       return;
     }
 
     setLoading(true);
     try {
-      const tokens = await login({ email: email.trim(), password });
+      // Login with 5s timeout
+      const loginPromise = login({ email: email.trim(), password });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 5000)
+      );
+      const tokens = await Promise.race([loginPromise, timeoutPromise]);
       await SessionManager.saveTokens(tokens);
-      await SessionManager.saveUserData({ email: email.trim() });
+
+      // Fetch full user profile
+      try {
+        const userProfile = await getUserByEmail(email.trim());
+        await SessionManager.saveUserData({
+          id: userProfile.id,
+          email: userProfile.email,
+          nombres: userProfile.nombres,
+          apellidos: userProfile.apellidos,
+          celular: userProfile.celular,
+          fechaNacimiento: userProfile.fechaNacimiento,
+          tipoDocumento: userProfile.tipoDocumento,
+          nroDocumento: userProfile.nroDocumento,
+          profileImage: userProfile.profileImage,
+          role: userProfile.role,
+        });
+      } catch {
+        // If profile fetch fails, save basic data
+        await SessionManager.saveUserData({ email: email.trim() });
+      }
+
       router.replace('/dashboard');
     } catch (error: any) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Credenciales incorrectas o error de conexión.';
-      Alert.alert('Error', msg);
+      if (error.message === 'TIMEOUT') {
+        Alert.alert(
+          'Tiempo agotado',
+          'El servidor no respondió a tiempo. Verifique su conexión a internet e intente nuevamente.',
+        );
+      } else if (error.response?.status === 400) {
+        Alert.alert(
+          'Credenciales incorrectas',
+          'El correo electrónico o la contraseña son incorrectos. Por favor verifique sus datos.',
+        );
+      } else if (error.response?.status === 403) {
+        Alert.alert(
+          'Cuenta no verificada',
+          'Debe verificar su correo electrónico antes de iniciar sesión.',
+        );
+      } else if (!error.response) {
+        Alert.alert(
+          'Sin conexión',
+          'No se pudo conectar al servidor. Verifique que está conectado a la red del hospital o a internet.',
+        );
+      } else {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          'Error al iniciar sesión. Intente nuevamente.';
+        Alert.alert('Error', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -74,15 +131,22 @@ export default function LoginScreen() {
           </View>
 
           <Text style={styles.label}>Contraseña</Text>
-          <View style={styles.inputBox}>
+          <View style={[styles.inputBox, { flexDirection: 'row', alignItems: 'center' }]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { flex: 1 }]}
               placeholder="Ingresa tu contraseña"
               placeholderTextColor={HospitalColors.textLight}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
             />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={{ paddingHorizontal: 10, paddingVertical: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={{ fontSize: 18 }}>{showPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity onPress={() => router.push('/recover-password')} style={styles.forgotWrap}>

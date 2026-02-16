@@ -33,20 +33,18 @@ export default function RecoverPasswordScreen() {
     setLoading(true);
     try {
       await forgotPassword(email.trim());
-      Alert.alert(
-        'Código enviado',
-        'Si la cuenta existe, recibirás un correo con el código para restablecer tu contraseña.',
-        [{
-          text: 'Continuar',
-          onPress: () => router.push({ pathname: '/reset-password', params: { email: email.trim() } }),
-        }],
-      );
+      // Auto-navigate to reset-password screen
+      router.push({ pathname: '/reset-password', params: { email: email.trim() } });
     } catch (error: any) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Error al enviar el código. Intente nuevamente.';
-      Alert.alert('Error', msg);
+      if (!error.response) {
+        Alert.alert('Sin conexión', 'No se pudo conectar al servidor. Verifique su conexión.');
+      } else {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          'Error al enviar el código. Intente nuevamente.';
+        Alert.alert('Error', msg);
+      }
     } finally {
       setLoading(false);
     }

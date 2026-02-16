@@ -3,16 +3,16 @@ import { verifyEmail } from '@/services/authApi';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function VerifyEmailScreen() {
@@ -20,6 +20,8 @@ export default function VerifyEmailScreen() {
   const params = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [verified, setVerified] = useState(false);
 
   const handleVerify = async () => {
     if (!code.trim()) {
@@ -29,18 +31,26 @@ export default function VerifyEmailScreen() {
 
     setLoading(true);
     try {
-      await verifyEmail({ email: params.email, code: code.trim() });
-      Alert.alert(
-        'Correo verificado',
-        'Su correo ha sido verificado exitosamente. Ya puede iniciar sesión.',
-        [{ text: 'OK', onPress: () => router.replace('/login') }],
+      const verifyPromise = verifyEmail({ email: params.email, code: code.trim() });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 8000)
       );
+      await Promise.race([verifyPromise, timeoutPromise]);
+      setVerified(true);
+      // Auto-redirect after short delay
+      setTimeout(() => {
+        router.replace('/login');
+      }, 2000);
     } catch (error: any) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Código inválido o expirado. Intente nuevamente.';
-      Alert.alert('Error', msg);
+      if (error.message === 'TIMEOUT') {
+        Alert.alert('Tiempo agotado', 'El servidor no respondió. Intente nuevamente.');
+      } else {
+        const msg =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          'Código inválido o expirado. Intente nuevamente.';
+        Alert.alert('Error', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,51 +62,67 @@ export default function VerifyEmailScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.iconContainer}>
-          <Text style={styles.iconText}>✉️</Text>
-        </View>
+        {verified ? (
+          <>
+            <View style={[styles.iconContainer, { backgroundColor: '#D1FAE5' }]}>
+              <Text style={styles.iconText}>✅</Text>
+            </View>
+            <Text style={styles.title}>¡Correo verificado!</Text>
+            <Text style={styles.description}>
+              Su correo ha sido verificado exitosamente.{'\n'}
+              Redirigiendo al inicio de sesión...
+            </Text>
+            <ActivityIndicator color={HospitalColors.primary} size="large" style={{ marginTop: 20 }} />
+          </>
+        ) : (
+          <>
+            <View style={styles.iconContainer}>
+              <Text style={styles.iconText}>✉️</Text>
+            </View>
 
-        <Text style={styles.title}>Verifica tu correo</Text>
-        <Text style={styles.description}>
-          Hemos enviado un código de verificación a{'\n'}
-          <Text style={styles.emailHighlight}>{params.email}</Text>
-        </Text>
+            <Text style={styles.title}>Verifica tu correo</Text>
+            <Text style={styles.description}>
+              Hemos enviado un código de verificación a{'\n'}
+              <Text style={styles.emailHighlight}>{params.email}</Text>
+            </Text>
 
-        <View style={styles.card}>
-          <Text style={styles.label}>Código de verificación</Text>
-          <TextInput
-            style={styles.codeInput}
-            placeholder="Ingrese el código"
-            placeholderTextColor={HospitalColors.textLight}
-            value={code}
-            onChangeText={setCode}
-            keyboardType="default"
-            autoCapitalize="none"
-            maxLength={10}
-            textAlign="center"
-          />
+            <View style={styles.card}>
+              <Text style={styles.label}>Código de verificación</Text>
+              <TextInput
+                style={styles.codeInput}
+                placeholder="Ingrese el código"
+                placeholderTextColor={HospitalColors.textLight}
+                value={code}
+                onChangeText={setCode}
+                keyboardType="default"
+                autoCapitalize="none"
+                maxLength={10}
+                textAlign="center"
+              />
 
-          <TouchableOpacity
-            style={[styles.verifyButton, loading && { opacity: 0.7 }]}
-            onPress={handleVerify}
-            activeOpacity={0.85}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={HospitalColors.white} />
-            ) : (
-              <Text style={styles.verifyButtonText}>Verificar</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[styles.verifyButton, loading && { opacity: 0.7 }]}
+                onPress={handleVerify}
+                activeOpacity={0.85}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={HospitalColors.white} />
+                ) : (
+                  <Text style={styles.verifyButtonText}>Verificar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
-        <Text style={styles.helpText}>
-          ¿No recibiste el correo? Revisa tu carpeta de spam o correo no deseado.
-        </Text>
+            <Text style={styles.helpText}>
+              ¿No recibiste el correo? Revisa tu carpeta de spam o correo no deseado.
+            </Text>
 
-        <TouchableOpacity onPress={() => router.replace('/login')} style={styles.backLink}>
-          <Text style={styles.backLinkText}>Volver al inicio de sesión</Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.replace('/login')} style={styles.backLink}>
+              <Text style={styles.backLinkText}>Volver al inicio de sesión</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );

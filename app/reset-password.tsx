@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HospitalColors } from '@/constants/theme';
 import { resetPassword } from '@/services/authApi';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -23,6 +23,8 @@ export default function ResetPasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleReset = async () => {
     if (!email.trim() || !code.trim() || !newPassword.trim() || !confirmPassword.trim()) {
@@ -97,24 +99,34 @@ export default function ResetPasswordScreen() {
           />
 
           <Text style={styles.label}>Nueva contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor={HospitalColors.textLight}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', height: 50, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 12, backgroundColor: HospitalColors.inputBg, marginBottom: 16, paddingHorizontal: 15 }}>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: HospitalColors.textPrimary }}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor={HospitalColors.textLight}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!showNewPassword}
+            />
+            <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={{ fontSize: 18 }}>{showNewPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Confirmar nueva contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Repita la nueva contraseña"
-            placeholderTextColor={HospitalColors.textLight}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', height: 50, borderWidth: 1, borderColor: HospitalColors.border, borderRadius: 12, backgroundColor: HospitalColors.inputBg, marginBottom: 16, paddingHorizontal: 15 }}>
+            <TextInput
+              style={{ flex: 1, fontSize: 15, color: HospitalColors.textPrimary }}
+              placeholder="Repita la nueva contraseña"
+              placeholderTextColor={HospitalColors.textLight}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+            />
+            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={{ fontSize: 18 }}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
