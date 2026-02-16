@@ -2,7 +2,6 @@ import { HospitalColors } from '@/constants/theme';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
 
 const HospitalTheme = {
   ...DefaultTheme,

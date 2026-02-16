@@ -1,11 +1,5 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
-import Animated, {
-  interpolate,
-  useAnimatedRef,
-  useAnimatedStyle,
-  useScrollOffset,
-} from 'react-native-reanimated';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -25,7 +19,28 @@ export default function ParallaxScrollView({
 }: Props) {
   const backgroundColor = useThemeColor({}, 'background');
   const colorScheme = useColorScheme() ?? 'light';
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+
+  // On web, use a simple ScrollView without animations to avoid worklets issues
+  if (Platform.OS === 'web') {
+    return (
+      <ScrollView style={{ backgroundColor, flex: 1 }}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: headerBackgroundColor[colorScheme] },
+          ]}>
+          {headerImage}
+        </View>
+        <ThemedView style={styles.content}>{children}</ThemedView>
+      </ScrollView>
+    );
+  }
+
+  // On native, use Animated components with parallax effect
+  const Animated = require('react-native-reanimated').default;
+  const { interpolate, useAnimatedRef, useAnimatedStyle, useScrollOffset } = require('react-native-reanimated');
+  
+  const scrollRef = useAnimatedRef();
   const scrollOffset = useScrollOffset(scrollRef);
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {

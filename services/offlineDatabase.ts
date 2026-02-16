@@ -3,11 +3,15 @@
  *
  * Uses expo-sqlite to store pending HTTP requests when the device is offline.
  * Each row in sync_queue represents a request that failed due to no connectivity.
+ * 
+ * Note: On web, uses in-memory storage instead of SQLite to avoid WASM module issues.
  */
 
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 const DB_NAME = 'hjatch_offline.db';
+const IS_WEB = Platform.OS === 'web';
 
 export interface SyncQueueItem {
   id: number;
@@ -20,9 +24,16 @@ export interface SyncQueueItem {
   status: 'pending' | 'in_progress' | 'failed';
 }
 
+// In-memory storage for web platform
+let webStorage: SyncQueueItem[] = [];
+let webIdCounter = 1;
+
 let db: SQLite.SQLiteDatabase | null = null;
 
 async function getDb(): Promise<SQLite.SQLiteDatabase> {
+  if (IS_WEB) {
+    throw new Error('SQLite not available on web platform');
+  }
   if (!db) {
     db = await SQLite.openDatabaseAsync(DB_NAME);
     await db.execAsync(`
@@ -50,6 +61,21 @@ export async function enqueueRequest(
   headers: Record<string, string>,
   body: any | null,
 ): Promise<void> {
+  if (IS_WEB) {
+    webStorage.push({
+      id: webIdCounter++,
+      method,
+      url,
+      headers: JSON.stringify(headers),
+      body: body ? JSON.stringify(body) : null,
+      created_at: new Date().toISOString(),
+      retries: 0,
+      status: 'pending',
+    });
+    console.log('[OfflineDB] Request enqueued (web):', method, url);
+    return;
+  }
+  
   const database = await getDb();
   await database.runAsync(
     `INSERT INTO sync_queue (method, url, headers, body) VALUES (?, ?, ?, ?)`,
@@ -65,6 +91,12 @@ export async function enqueueRequest(
  * Get all pending requests ordered by creation time.
  */
 export async function getPendingRequests(): Promise<SyncQueueItem[]> {
+  if (IS_WEB) {
+    return webStorage
+      .filter(item => item.status === 'pending')
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+  
   const database = await getDb();
   const rows = await database.getAllAsync<SyncQueueItem>(
     `SELECT * FROM sync_queue WHERE status = 'pending' ORDER BY created_at ASC`,
@@ -76,6 +108,12 @@ export async function getPendingRequests(): Promise<SyncQueueItem[]> {
  * Mark a request as in_progress.
  */
 export async function markInProgress(id: number): Promise<void> {
+  if (IS_WEB) {
+    const item = webStorage.find(i => i.id === id);
+    if (item) item.status = 'in_progress';
+    return;
+  }
+  
   const database = await getDb();
   await database.runAsync(
     `UPDATE sync_queue SET status = 'in_progress' WHERE id = ?`,
@@ -87,6 +125,11 @@ export async function markInProgress(id: number): Promise<void> {
  * Remove a successfully synced request.
  */
 export async function removeRequest(id: number): Promise<void> {
+  if (IS_WEB) {
+    webStorage = webStorage.filter(item => item.id !== id);
+    return;
+  }
+  
   const database = await getDb();
   await database.runAsync(`DELETE FROM sync_queue WHERE id = ?`, id);
 }
@@ -95,6 +138,15 @@ export async function removeRequest(id: number): Promise<void> {
  * Increment retry count and set back to pending (or failed if max retries exceeded).
  */
 export async function incrementRetry(id: number, maxRetries: number = 5): Promise<void> {
+  if (IS_WEB) {
+    const item = webStorage.find(i => i.id === id);
+    if (item) {
+      item.retries++;
+      item.status = item.retries >= maxRetries ? 'failed' : 'pending';
+    }
+    return;
+  }
+  
   const database = await getDb();
   await database.runAsync(
     `UPDATE sync_queue
@@ -110,6 +162,10 @@ export async function incrementRetry(id: number, maxRetries: number = 5): Promis
  * Get the count of pending requests.
  */
 export async function getPendingCount(): Promise<number> {
+  if (IS_WEB) {
+    return webStorage.filter(item => item.status === 'pending').length;
+  }
+  
   const database = await getDb();
   const result = await database.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) as count FROM sync_queue WHERE status = 'pending'`,
@@ -121,6 +177,11 @@ export async function getPendingCount(): Promise<number> {
  * Clear all failed requests.
  */
 export async function clearFailedRequests(): Promise<void> {
+  if (IS_WEB) {
+    webStorage = webStorage.filter(item => item.status !== 'failed');
+    return;
+  }
+  
   const database = await getDb();
   await database.runAsync(`DELETE FROM sync_queue WHERE status = 'failed'`);
 }
@@ -129,6 +190,12 @@ export async function clearFailedRequests(): Promise<void> {
  * Clear entire queue.
  */
 export async function clearQueue(): Promise<void> {
+  if (IS_WEB) {
+    webStorage = [];
+    webIdCounter = 1;
+    return;
+  }
+  
   const database = await getDb();
   await database.runAsync(`DELETE FROM sync_queue`);
 }

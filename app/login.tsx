@@ -4,33 +4,33 @@ import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView, Platform,
-    ScrollView,
-    StyleSheet,
-    Text, TextInput, TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView, Platform,
+  ScrollView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View,
 } from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [documentId, setDocumentId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!documentId.trim() || !password.trim()) {
-      Alert.alert('Error', 'Por favor ingrese su documento de identidad y contraseña.');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Por favor ingrese su correo electrónico y contraseña.');
       return;
     }
 
     setLoading(true);
     try {
-      const tokens = await login({ email: documentId.trim(), password });
+      const tokens = await login({ email: email.trim(), password });
       await SessionManager.saveTokens(tokens);
-      await SessionManager.saveUserData({ email: documentId.trim() });
+      await SessionManager.saveUserData({ email: email.trim() });
       router.replace('/dashboard');
     } catch (error: any) {
       const msg =
@@ -58,16 +58,18 @@ export default function LoginScreen() {
         <Text style={styles.welcomeSub}>Ingresa tus datos para continuar</Text>
 
         <View style={styles.formSection}>
-          <Text style={styles.label}>Documento de identidad</Text>
+          <Text style={styles.label}>Correo electrónico</Text>
           <View style={styles.inputBox}>
             <TextInput
               style={styles.input}
-              placeholder="Ej: 72345678"
+              placeholder="ejemplo@correo.com"
               placeholderTextColor={HospitalColors.textLight}
-              value={documentId}
-              onChangeText={setDocumentId}
-              keyboardType="numeric"
-              maxLength={15}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
             />
           </View>
 
