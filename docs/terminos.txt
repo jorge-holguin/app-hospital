@@ -1,0 +1,144 @@
+TÉRMINOS Y CONDICIONES DE USO
+
+APLICATIVO MÓVIL Y SITIO WEB
+HOSPITAL JOSÉ AGURTO TELLO
+
+1. IDENTIFICACIÓN DEL RESPONSABLE
+Los presentes Términos y Condiciones de Uso (en adelante, los “Términos”) regulan el acceso y utilización del aplicativo móvil, sitio web institucional y servicios digitales del Hospital José Agurto Tello, establecimiento de salud del Estado Peruano, adscrito al Ministerio de Salud (MINSA), con domicilio institucional en la República del Perú (en adelante, el “HOSPITAL”).
+El HOSPITAL actúa como titular del banco de datos personales conforme a la normativa vigente.
+
+2. MARCO NORMATIVO APLICABLE
+El uso del aplicativo móvil y sitio web se rige por la legislación peruana vigente, incluyendo, entre otras:
+•	Ley N° 26842
+•	Ley N° 29733
+•	Decreto Supremo N° 003-2013-JUS
+•	Ley N° 27658
+•	Ley N° 27269
+•	Normativa y lineamientos emitidos por el Ministerio de Salud (MINSA) sobre Historia Clínica Electrónica, Gobierno Digital y Seguridad de la Información.
+
+3. ACEPTACIÓN DE LOS TÉRMINOS
+Al descargar, instalar, registrarse o utilizar el aplicativo móvil o sitio web, el Usuario declara:
+•	Haber leído íntegramente estos Términos.
+•	Aceptarlos expresamente.
+•	Cumplir con la normativa vigente.
+Si el Usuario no está de acuerdo, deberá abstenerse de utilizar los servicios digitales del HOSPITAL.
+
+4. FINALIDAD DEL APLICATIVO Y SITIO WEB
+El aplicativo móvil y sitio web tienen como finalidad:
+•	Gestión de citas médicas.
+•	Consulta de programación.
+•	Información institucional.
+•	Acceso a resultados (cuando corresponda).
+•	Servicios digitales autorizados por el HOSPITAL.
+La información publicada tiene carácter informativo y no sustituye consulta médica presencial ni constituye diagnóstico médico.
+
+5. CONDICIONES DE USO
+El Usuario se compromete a:
+•	Proporcionar información veraz y actualizada.
+•	No suplantar identidad.
+•	No realizar accesos indebidos.
+•	No intentar vulnerar la seguridad del sistema.
+•	No usar el sistema para fines ilícitos.
+El HOSPITAL podrá suspender o bloquear cuentas ante incumplimientos.
+
+6. USO POR MENORES DE EDAD
+El uso del aplicativo por menores de edad deberá realizarse bajo representación de padre, madre o tutor legal conforme a la legislación peruana.
+
+7. CUENTA DE USUARIO
+Para acceder a determinados servicios, el Usuario deberá crear una cuenta.
+El Usuario es responsable de:
+•	La confidencialidad de su contraseña.
+•	Las acciones realizadas desde su cuenta.
+•	Cerrar sesión en dispositivos compartidos.
+El HOSPITAL podrá bloquear cuentas por razones de seguridad o uso indebido.
+
+8. POLÍTICA DE CITAS MÉDICAS
+8.1 Reserva de Citas
+Las citas médicas están sujetas a disponibilidad de agenda institucional.
+8.2 Pago de Citas
+En el caso de servicios sujetos a pago:
+•	El pago se realizará el mismo día de la atención.
+•	El pago se efectuará en los canales autorizados por el HOSPITAL.
+8.3 Tolerancia y Deserción
+•	El paciente deberá presentarse puntualmente a la hora programada.
+•	Si el paciente no se presenta a la hora exacta asignada, la cita será anulada automáticamente.
+•	El sistema registrará al paciente en condición de “deserción”.
+•	La cita será liberada para otro paciente.
+El HOSPITAL podrá establecer medidas administrativas ante reiteradas inasistencias conforme a normativa interna.
+
+9. DISPONIBILIDAD DEL SERVICIO
+El HOSPITAL realiza esfuerzos razonables para garantizar disponibilidad del sistema; sin embargo:
+•	No garantiza funcionamiento ininterrumpido.
+•	Puede suspender temporalmente el servicio por mantenimiento.
+•	No es responsable por fallas de conectividad del Usuario.
+
+10. PROTECCIÓN DE DATOS PERSONALES
+El tratamiento de datos personales se realiza conforme a:
+Ley N° 29733
+Los datos de salud constituyen datos sensibles y reciben nivel de protección alto.
+10.1 Finalidad
+•	Gestión de citas.
+•	Atención médica.
+•	Historia clínica.
+•	Estadísticas sanitarias.
+•	Cumplimiento de obligaciones legales.
+10.2 Derechos ARCO
+El Usuario puede ejercer derechos de:
+•	Acceso
+•	Rectificación
+•	Cancelación
+•	Oposición
+Mediante solicitud formal ante el HOSPITAL.
+10.3 Medidas de Seguridad
+El HOSPITAL implementa:
+•	Protocolos HTTPS.
+•	Control de accesos.
+•	Registro de auditoría.
+•	Trazabilidad de accesos a historia clínica.
+•	Copias de seguridad.
+•	Gestión de incidentes.
+
+11. HISTORIA CLÍNICA ELECTRÓNICA
+Cuando el sistema permita acceso a información clínica:
+•	Los registros son inalterables.
+•	Todo acceso queda auditado.
+•	Solo personal autorizado puede acceder.
+•	El Usuario solo puede visualizar su propia información.
+
+12. PROPIEDAD INTELECTUAL
+Todo el contenido del aplicativo y sitio web pertenece al HOSPITAL o al Estado Peruano.
+Está prohibida su reproducción sin autorización expresa.
+
+13. LIMITACIÓN DE RESPONSABILIDAD
+El HOSPITAL no será responsable por:
+•	Uso indebido del aplicativo.
+•	Pérdida de información causada por terceros.
+•	Interrupciones ajenas a su control.
+•	Ataques informáticos externos.
+Sin perjuicio de las responsabilidades establecidas por ley.
+
+14. ENLACES A TERCEROS
+El sitio puede contener enlaces externos.
+El HOSPITAL no es responsable por contenido de terceros.
+
+15. SEGURIDAD Y BRECHAS
+En caso de incidente de seguridad que comprometa datos personales, el HOSPITAL actuará conforme a la normativa vigente y procedimientos internos del Estado.
+
+16. ELIMINACIÓN DE CUENTA
+El Usuario podrá solicitar la eliminación de su cuenta, sin perjuicio de la conservación obligatoria de datos clínicos conforme a la Ley General de Salud.
+
+17. MODIFICACIONES
+El HOSPITAL podrá modificar los presentes Términos para adecuarlos a:
+•	Cambios normativos.
+•	Lineamientos MINSA.
+•	Mejoras tecnológicas.
+•	Disposiciones del Estado Peruano.
+Las modificaciones serán publicadas en el sitio web institucional.
+________________________________________
+18. LEY APLICABLE Y JURISDICCIÓN
+Estos Términos se rigen por las leyes de la República del Perú.
+Cualquier controversia será sometida a la jurisdicción de los jueces competentes del Perú.
+
+19. VIGENCIA
+Los presentes Términos entran en vigencia desde su publicación oficial en el portal institucional del HOSPITAL.
+

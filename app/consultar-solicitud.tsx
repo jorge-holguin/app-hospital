@@ -1,24 +1,51 @@
-import { getAppointmentStatusConfig, mockAppointments } from '@/constants/mockData';
+import { getAppointmentStatusConfig } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { getSolicitudesByDocumento, mapTipoDocumentoForSolicitudes, SolicitudCita } from '@/services/solicitudesApi';
 import { SessionManager, UserData } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function ConsultarSolicitudScreen() {
   const router = useRouter();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [user, setUser] = useState<UserData | null>(null);
+  const [solicitudes, setSolicitudes] = useState<SolicitudCita[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    SessionManager.getUserData().then(setUser);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userData = await SessionManager.getUserData();
+      setUser(userData);
+      if (!userData?.nroDocumento) {
+        setError('No se encontró su número de documento. Actualice su perfil.');
+        setLoading(false);
+        return;
+      }
+      const tipoDoc = mapTipoDocumentoForSolicitudes(userData.tipoDocumento);
+      const data = await getSolicitudesByDocumento(tipoDoc, userData.nroDocumento);
+      setSolicitudes(data);
+    } catch (err: any) {
+      console.error('Error fetching solicitudes:', err);
+      setError('No se pudieron cargar las solicitudes. Verifique su conexión.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const userName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
 
@@ -34,97 +61,128 @@ export default function ConsultarSolicitudScreen() {
         </Text>
       </View>
 
-      <Text style={styles.resultCount}>
-        {mockAppointments.length} solicitud{mockAppointments.length !== 1 ? 'es' : ''} encontrada{mockAppointments.length !== 1 ? 's' : ''}
-      </Text>
-
-      {mockAppointments.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyText}>No tienes solicitudes registradas</Text>
-          <Text style={styles.emptySub}>Tus solicitudes de cita aparecerán aquí</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={HospitalColors.primary} />
+          <Text style={styles.loadingText}>Cargando solicitudes...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity onPress={loadData} style={styles.retryBtn}>
+            <Text style={styles.retryBtnText}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
       ) : (
-        mockAppointments.map((apt) => {
-          const statusCfg = getAppointmentStatusConfig(apt.status);
-          const isExpanded = expandedId === apt.id;
+        <>
+          <Text style={styles.resultCount}>
+            {solicitudes.length} solicitud{solicitudes.length !== 1 ? 'es' : ''} encontrada{solicitudes.length !== 1 ? 's' : ''}
+          </Text>
 
-          return (
-            <TouchableOpacity
-              key={apt.id}
-              style={styles.aptCard}
-              onPress={() => setExpandedId(isExpanded ? null : apt.id)}
-              activeOpacity={0.7}
-            >
-              {/* Top row */}
-              <View style={styles.cardTop}>
-                <View style={[styles.badge, { backgroundColor: statusCfg.bg }]}>
-                  <Text style={[styles.badgeText, { color: statusCfg.text }]}>{statusCfg.label}</Text>
-                </View>
-                <Text style={styles.cardCode}>{apt.codigo}</Text>
-              </View>
+          {solicitudes.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={styles.emptyText}>No tienes solicitudes registradas</Text>
+              <Text style={styles.emptySub}>Tus solicitudes de cita aparecerán aquí</Text>
+            </View>
+          ) : (
+            solicitudes.map((apt) => {
+              const statusCfg = getAppointmentStatusConfig(apt.estado);
+              const isExpanded = expandedId === apt.idSolicitudCita;
 
-              {/* Specialty & doctor */}
-              <Text style={styles.aptSpecialty}>{apt.specialty}</Text>
-              <Text style={styles.aptDoctor}>{apt.doctor}</Text>
+              return (
+                <TouchableOpacity
+                  key={apt.idSolicitudCita}
+                  style={styles.aptCard}
+                  onPress={() => setExpandedId(isExpanded ? null : apt.idSolicitudCita)}
+                  activeOpacity={0.7}
+                >
+                  {/* Top row */}
+                  <View style={styles.cardTop}>
+                    <View style={[styles.badge, { backgroundColor: statusCfg.bg }]}>
+                      <Text style={[styles.badgeText, { color: statusCfg.text }]}>{statusCfg.label}</Text>
+                    </View>
+                    <Text style={styles.cardCode}>{apt.codigo}</Text>
+                  </View>
 
-              {/* Date & time */}
-              <View style={styles.dateTimeRow}>
-                <Text style={styles.dateTimeIcon}>📅</Text>
-                <Text style={styles.dateTimeText}>{apt.date} — {apt.time}hs</Text>
-              </View>
+                  {/* Specialty & doctor */}
+                  <Text style={styles.aptSpecialty}>{apt.especialidadNombre}</Text>
+                  <Text style={styles.aptDoctor}>{apt.medicoNombre}</Text>
 
-              {/* Expanded details */}
-              {isExpanded && (
-                <View style={styles.expandedSection}>
-                  {apt.tipoAtencion && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Tipo de Atención</Text>
-                      <View style={[styles.typeChip, {
-                        backgroundColor: apt.tipoAtencion === 'SIS' ? '#DBEAFE' :
-                          apt.tipoAtencion === 'SOAT' ? '#EDE9FE' : '#D1FAE5',
-                      }]}>
-                        <Text style={[styles.typeChipText, {
-                          color: apt.tipoAtencion === 'SIS' ? '#1E40AF' :
-                            apt.tipoAtencion === 'SOAT' ? '#5B21B6' : '#065F46',
-                        }]}>
-                          {apt.tipoAtencion}
+                  {/* Date & time */}
+                  <View style={styles.dateTimeRow}>
+                    <Text style={styles.dateTimeIcon}>📅</Text>
+                    <Text style={styles.dateTimeText}>{apt.fecha} — {apt.hora}hs</Text>
+                  </View>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <View style={styles.expandedSection}>
+                      {apt.tipoAtencion && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Tipo de Atención</Text>
+                          <View style={[styles.typeChip, {
+                            backgroundColor: apt.tipoAtencion === 'SIS' ? '#DBEAFE' :
+                              apt.tipoAtencion === 'SOAT' ? '#EDE9FE' : '#D1FAE5',
+                          }]}>
+                            <Text style={[styles.typeChipText, {
+                              color: apt.tipoAtencion === 'SIS' ? '#1E40AF' :
+                                apt.tipoAtencion === 'SOAT' ? '#5B21B6' : '#065F46',
+                            }]}>
+                              {apt.tipoAtencion}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+
+                      {apt.tipoCita && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Tipo de Cita</Text>
+                          <Text style={styles.detailValue}>{apt.tipoCita}</Text>
+                        </View>
+                      )}
+
+                      {apt.consultorio && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Consultorio</Text>
+                          <Text style={styles.detailValue}>{apt.consultorio}</Text>
+                        </View>
+                      )}
+
+                      {apt.observacion && (
+                        <View style={[styles.observationBox, { borderLeftColor: statusCfg.text }]}>
+                          <Text style={styles.observationLabel}>Observación</Text>
+                          <Text style={styles.observationText}>{apt.observacion}</Text>
+                        </View>
+                      )}
+
+                      {apt.observacionPaciente && (
+                        <View style={[styles.observationBox, { borderLeftColor: HospitalColors.primary }]}>
+                          <Text style={styles.observationLabel}>Tu observación</Text>
+                          <Text style={styles.observationText}>{apt.observacionPaciente}</Text>
+                        </View>
+                      )}
+
+                      {/* Status message */}
+                      <View style={[styles.statusMsgBox, { backgroundColor: statusCfg.bg }]}>
+                        <Text style={[styles.statusMsgText, { color: statusCfg.text }]}>
+                          {apt.estado === 'CITADO' && 'Tu cita ha sido otorgada. Debes llegar 30 min antes.'}
+                          {apt.estado === 'PENDIENTE' && 'Tu solicitud está siendo procesada. Te notificaremos pronto.'}
+                          {apt.estado === 'DENEGADO' && `Solicitud denegada: ${apt.observacion || 'Sin motivo especificado'}`}
+                          {apt.estado === 'ELIMINADO' && 'Esta solicitud ha sido eliminada del sistema.'}
+                          {apt.estado === 'EN_REVISION' && 'Tu solicitud está en revisión por nuestro equipo.'}
                         </Text>
                       </View>
                     </View>
                   )}
 
-                  {apt.consultorio && (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Consultorio</Text>
-                      <Text style={styles.detailValue}>{apt.consultorio}</Text>
-                    </View>
-                  )}
-
-                  {apt.observacion && (
-                    <View style={[styles.observationBox, { borderLeftColor: statusCfg.text }]}>
-                      <Text style={styles.observationLabel}>Observación</Text>
-                      <Text style={styles.observationText}>{apt.observacion}</Text>
-                    </View>
-                  )}
-
-                  {/* Status message */}
-                  <View style={[styles.statusMsgBox, { backgroundColor: statusCfg.bg }]}>
-                    <Text style={[styles.statusMsgText, { color: statusCfg.text }]}>
-                      {apt.status === 'CITADO' && 'Tu cita ha sido otorgada. Debes llegar 30 min antes.'}
-                      {apt.status === 'PENDIENTE' && 'Tu solicitud está siendo procesada. Te notificaremos pronto.'}
-                      {apt.status === 'DENEGADO' && `Solicitud denegada: ${apt.observacion || 'Sin motivo especificado'}`}
-                      {apt.status === 'ELIMINADO' && 'Esta solicitud ha sido eliminada del sistema.'}
-                      {apt.status === 'EN_REVISION' && 'Tu solicitud está en revisión por nuestro equipo.'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <Text style={styles.expandHint}>{isExpanded ? '▲ Menos detalles' : '▼ Ver detalles'}</Text>
-            </TouchableOpacity>
-          );
-        })
+                  <Text style={styles.expandHint}>{isExpanded ? '▲ Menos detalles' : '▼ Ver detalles'}</Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </>
       )}
     </ScrollView>
   );
@@ -138,6 +196,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700', color: HospitalColors.textPrimary },
   subtitle: { fontSize: 13, color: HospitalColors.textLight, marginTop: 4 },
   resultCount: { fontSize: 12, color: HospitalColors.textLight, marginBottom: 12 },
+  loadingContainer: { alignItems: 'center', paddingTop: 60 },
+  loadingText: { fontSize: 14, color: HospitalColors.textLight, marginTop: 12 },
+  errorContainer: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
+  errorIcon: { fontSize: 40, marginBottom: 12 },
+  errorText: { fontSize: 15, color: HospitalColors.textSecondary, textAlign: 'center' },
+  retryBtn: { marginTop: 16, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: HospitalColors.primarySoft, borderRadius: 10 },
+  retryBtnText: { color: HospitalColors.primary, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyIcon: { fontSize: 40, marginBottom: 12 },
   emptyText: { fontSize: 16, fontWeight: '600', color: HospitalColors.textSecondary },

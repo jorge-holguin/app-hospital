@@ -85,10 +85,18 @@ export default function SolicitudCitaScreen() {
     if (step === 1 && patientType) {
       setStep(2);
     } else if (step === 2 && appointmentType) {
-      router.push({
-        pathname: '/select-specialty',
-        params: { patientType, appointmentType, sessionToken: sessionToken || '' },
-      });
+      // Si es SIS, debe seleccionar una referencia primero
+      if (patientType === 'SIS') {
+        router.push({
+          pathname: '/select-referencia' as any,
+          params: { patientType, appointmentType, sessionToken: sessionToken || '' },
+        });
+      } else {
+        router.push({
+          pathname: '/select-specialty',
+          params: { patientType, appointmentType, sessionToken: sessionToken || '' },
+        });
+      }
     }
   };
 

@@ -1,19 +1,20 @@
 import { HospitalColors } from '@/constants/theme';
 import { changePassword } from '@/services/userApi';
+import { showApiError } from '@/utils/apiErrorHandler';
 import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 export default function ChangePasswordScreen() {
@@ -64,15 +65,7 @@ export default function ChangePasswordScreen() {
         [{ text: 'OK', onPress: () => router.back() }],
       );
     } catch (error: any) {
-      if (error.response?.status === 400) {
-        Alert.alert('Error', 'La contraseña actual es incorrecta. Verifique e intente nuevamente.');
-      } else {
-        const msg =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          'Error al cambiar la contraseña. Intente nuevamente.';
-        Alert.alert('Error', msg);
-      }
+      showApiError(error, 'Error', 'Error al cambiar la contraseña. Intente nuevamente.');
     } finally {
       setLoading(false);
     }

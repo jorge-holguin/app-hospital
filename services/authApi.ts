@@ -28,6 +28,15 @@ export interface RegisterPayload {
   fechaNacimiento: string; // YYYY-MM-DD
   password: string;
   termsAccepted: boolean;
+  tipoDocumento: string;
+  nroDocumento: string;
+  digitoVerificacion?: string;
+  fechaExpedicion?: string;
+}
+
+export interface TipoDocumentoOption {
+  tipoDocumento: string;
+  nombre: string;
 }
 
 export interface VerifyEmailPayload {
@@ -68,4 +77,31 @@ export async function resetPassword(
   await authClient.post(
     `/reset-password?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}&newPassword=${encodeURIComponent(newPassword)}`,
   );
+}
+
+const BASE_URL =
+  process.env.EXPO_PUBLIC_SOLICITUDES_CITA_BASE_URL || 'http://192.168.5.231:9012';
+const API_BASE_URL = `${BASE_URL}/api/v1/app-citas`;
+
+/**
+ * Get available document types for registration.
+ */
+export async function getTipoDocumentoOptions(): Promise<TipoDocumentoOption[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tipo-documento`, {
+      method: 'GET',
+      headers: { 'Accept': '*/*' },
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('[API] getTipoDocumentoOptions error:', error);
+    // Return default options if API fails
+    return [
+      { tipoDocumento: 'D  ', nombre: 'DNI' },
+      { tipoDocumento: 'CE ', nombre: 'Carnet de Extranjeria' },
+    ];
+  }
 }

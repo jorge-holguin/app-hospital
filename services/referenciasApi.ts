@@ -1,9 +1,10 @@
 /**
  * Referencias API Service
- * Endpoint: http://192.168.0.31:9012/api/referencia/consultar-referencias
+ * Endpoint: EXPO_PUBLIC_REFERENCIA_API_BASE_URL/api/referencia/consultar-referencias
  */
 
-const REFERENCIA_BASE_URL = 'http://192.168.0.31:9012/api/referencia';
+const API_ROOT = process.env.EXPO_PUBLIC_SOLICITUDES_CITA_BASE_URL || 'http://192.168.0.252:9012';
+const REFERENCIA_BASE_URL = `${API_ROOT}/api/v1/referencias`;
 
 export interface ReferenciaRequest {
   establecimientoDestino: string;
@@ -15,6 +16,7 @@ export interface ReferenciaRequest {
 
 export interface ReferenciaItem {
   id?: string;
+  idReferencia?: string;
   numeroReferencia?: string;
   codigoEstado: string;
   estado?: string;
@@ -22,12 +24,21 @@ export interface ReferenciaItem {
   especialidadDestino?: string;
   establecimientoOrigen?: string;
   fecha?: string;
+  fechaEnvio?: string;
   diagnostico?: string;
   profesionalOrigen?: string;
   [key: string]: any;
 }
 
-export interface ReferenciaResponse {
+export interface ReferenciaApiResponse {
+  codigo?: string;
+  mensaje?: string;
+  datos?: {
+    paginas?: number;
+    porPagina?: number | null;
+    total?: number;
+    datos?: ReferenciaItem[] | null;
+  };
   content?: ReferenciaItem[];
   referencias?: ReferenciaItem[];
   [key: string]: any;
@@ -53,25 +64,64 @@ export async function consultarReferencias(
 
     console.log('[API] consultarReferencias payload:', payload);
 
-    const res = await fetch(`${REFERENCIA_BASE_URL}/consultar-referencias`, {
+    const res = await fetch(`${REFERENCIA_BASE_URL}/consultar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText || `HTTP ${res.status}`);
+    // Get raw text first to handle empty responses
+    const rawText = await res.text();
+    console.log('[API] consultarReferencias raw response:', rawText.substring(0, 500));
+
+    // Handle empty response
+    if (!rawText || rawText.trim() === '') {
+      console.log('[API] consultarReferencias: Empty response from server');
+      return [];
     }
 
-    const data = await res.json();
+    // Try to parse JSON
+    let data: ReferenciaApiResponse;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error('[API] consultarReferencias: JSON parse error, raw text:', rawText.substring(0, 200));
+      // If response is HTML (error page), show generic error
+      if (rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
+        throw new Error('El servidor devolvió una página de error. Intente más tarde.');
+      }
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    // Handle codigo 6000: "No existe registros" - return empty array (not an error)
+    if (data.codigo === '6000') {
+      console.log('[API] consultarReferencias: No hay referencias activas');
+      return [];
+    }
+
+    // If not ok and not codigo 6000, throw error
+    if (!res.ok) {
+      throw new Error(data.mensaje || `HTTP ${res.status}`);
+    }
 
     // Handle different response structures
-    if (Array.isArray(data)) return data;
-    if (data.content && Array.isArray(data.content)) return data.content;
-    if (data.referencias && Array.isArray(data.referencias)) return data.referencias;
+    // API returns: { datos: { datos: [{ rownum, data: { idReferencia, codigoEstado... } }] } }
+    let result: ReferenciaItem[] = [];
+    
+    if (Array.isArray(data)) {
+      result = data;
+    } else if (data.datos?.datos && Array.isArray(data.datos.datos)) {
+      // Extract nested data property from each item
+      result = data.datos.datos
+        .filter((item: any) => item && item.data)
+        .map((item: any) => item.data as ReferenciaItem);
+    } else if (data.content && Array.isArray(data.content)) {
+      result = data.content;
+    } else if (data.referencias && Array.isArray(data.referencias)) {
+      result = data.referencias;
+    }
 
-    return [];
+    return result;
   } catch (error) {
     console.error('[API] consultarReferencias error:', error);
     throw error;

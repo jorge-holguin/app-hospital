@@ -1,20 +1,45 @@
 import { HospitalColors } from '@/constants/theme';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-// Mock triage history data
-const TRIAGE_HISTORY = [
-  { id: '1', fecha: '11/02/2026', talla: 1.70, peso: 78.2, presionArterial: '120/80', temperatura: 37.0, saturacion: 98, frecuenciaCardiaca: 76, frecuenciaRespiratoria: 15, imc: 27.1 },
-  { id: '2', fecha: '11/02/2026', talla: 1.70, peso: 79.1, presionArterial: '118/78', temperatura: 36.8, saturacion: 97, frecuenciaCardiaca: 72, frecuenciaRespiratoria: 16, imc: 27.4 },
-  { id: '3', fecha: '11/02/2026', talla: 1.70, peso: 80.5, presionArterial: '125/82', temperatura: 36.5, saturacion: 99, frecuenciaCardiaca: 80, frecuenciaRespiratoria: 14, imc: 27.9 },
-  { id: '4', fecha: '11/02/2026', talla: 1.70, peso: 79.4, presionArterial: '122/80', temperatura: 37.2, saturacion: 98, frecuenciaCardiaca: 74, frecuenciaRespiratoria: 15, imc: 27.5 },
-  { id: '5', fecha: '11/02/2026', talla: 1.70, peso: 79.5, presionArterial: '120/78', temperatura: 36.6, saturacion: 98, frecuenciaCardiaca: 78, frecuenciaRespiratoria: 16, imc: 27.5 },
-  { id: '6', fecha: '11/02/2026', talla: 1.70, peso: 77.5, presionArterial: '119/79', temperatura: 36.5, saturacion: 99, frecuenciaCardiaca: 70, frecuenciaRespiratoria: 15, imc: 26.8 },
-];
+import { getSignosVitales, mapTipoDocumentoForAtenciones, SignosVitales } from '@/services/signosVitalesApi';
+import { SessionManager } from '@/utils/session';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function TriageHistoryScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ triajes?: string }>();
+  const [triajes, setTriajes] = useState<SignosVitales[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      // First try to use passed triajes from dashboard
+      if (params.triajes) {
+        const parsed = JSON.parse(params.triajes);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTriajes(parsed);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Otherwise fetch from API
+      const userData = await SessionManager.getUserData();
+      if (userData?.nroDocumento) {
+        const tipoDoc = mapTipoDocumentoForAtenciones(userData.tipoDocumento);
+        const data = await getSignosVitales(tipoDoc, userData.nroDocumento);
+        setTriajes(data);
+      }
+    } catch (error) {
+      console.error('Error loading triage history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -26,47 +51,57 @@ export default function TriageHistoryScreen() {
         <Text style={styles.subtitle}>Registro de tus signos vitales</Text>
       </View>
 
-      {TRIAGE_HISTORY.map((triage) => (
-        <TouchableOpacity
-          key={triage.id}
-          style={styles.card}
-          onPress={() =>
-            router.push({
-              pathname: '/triage-detail',
-              params: {
-                id: triage.id,
-                fecha: triage.fecha,
-                talla: String(triage.talla),
-                peso: String(triage.peso),
-                presionArterial: triage.presionArterial,
-                temperatura: String(triage.temperatura),
-                saturacion: String(triage.saturacion),
-                frecuenciaCardiaca: String(triage.frecuenciaCardiaca),
-                frecuenciaRespiratoria: String(triage.frecuenciaRespiratoria),
-                imc: String(triage.imc),
-              },
-            })
-          }
-          activeOpacity={0.7}
-        >
-          <View style={styles.cardRow}>
-            <View style={styles.cardField}>
-              <Text style={styles.fieldLabel}>Talla (CM)</Text>
-              <Text style={styles.fieldValue}>{triage.talla.toFixed(2)}</Text>
+      {loading ? (
+        <View style={{ alignItems: 'center', paddingTop: 40 }}>
+          <ActivityIndicator size="large" color={HospitalColors.primary} />
+          <Text style={{ fontSize: 14, color: HospitalColors.textLight, marginTop: 12 }}>Cargando historial...</Text>
+        </View>
+      ) : triajes.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingTop: 40 }}>
+          <Text style={{ fontSize: 40, marginBottom: 12 }}>📋</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: HospitalColors.textSecondary }}>Sin historial de triaje</Text>
+          <Text style={{ fontSize: 13, color: HospitalColors.textLight, marginTop: 4 }}>No se encontraron registros de signos vitales</Text>
+        </View>
+      ) : (
+        triajes.map((triage, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.card}
+            onPress={() =>
+              router.push({
+                pathname: '/triage-detail',
+                params: {
+                  fecha: triage.fecha || 'Sin fecha',
+                  talla: triage.talla || '',
+                  peso: triage.peso || '',
+                  presionArterial: triage.presion || '',
+                  temperatura: triage.temperatura || '',
+                  origen: triage.origen || '',
+                  edad: triage.edad || '',
+                },
+              })
+            }
+            activeOpacity={0.7}
+          >
+            <View style={styles.cardRow}>
+              <View style={styles.cardField}>
+                <Text style={styles.fieldLabel}>Talla (CM)</Text>
+                <Text style={styles.fieldValue}>{triage.talla || 'N/D'}</Text>
+              </View>
+              <View style={styles.cardFieldCenter}>
+                <Text style={styles.fieldDate}>{triage.fecha || 'Sin fecha'}</Text>
+                <TouchableOpacity>
+                  <Text style={styles.verMas}>Ver más</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.cardField}>
+                <Text style={styles.fieldLabel}>Peso (KG)</Text>
+                <Text style={[styles.fieldValue, { color: HospitalColors.accent }]}>{triage.peso || 'N/D'}</Text>
+              </View>
             </View>
-            <View style={styles.cardFieldCenter}>
-              <Text style={styles.fieldDate}>{triage.fecha}</Text>
-              <TouchableOpacity>
-                <Text style={styles.verMas}>Ver más</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.cardField}>
-              <Text style={styles.fieldLabel}>Peso (KG)</Text>
-              <Text style={[styles.fieldValue, { color: HospitalColors.accent }]}>{triage.peso}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        ))
+      )}
     </ScrollView>
   );
 }

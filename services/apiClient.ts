@@ -10,11 +10,12 @@ import { SessionManager } from '@/utils/session';
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { router } from 'expo-router';
 
-const AUTH_BASE_URL =
-  process.env.EXPO_PUBLIC_AUTH_API_BASE_URL || 'http://192.168.0.252:9012/api/auth';
+// Base URL from environment (192.168.5.231:9012)
+const BASE_URL =
+  process.env.EXPO_PUBLIC_SOLICITUDES_CITA_BASE_URL || 'http://192.168.5.231:9012';
 
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || 'https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas';
+const AUTH_BASE_URL = `${BASE_URL}/api/auth`;
+const API_BASE_URL = `${BASE_URL}/api/v1/app-citas`;
 
 // ── Main API client (for protected endpoints) ────────────────
 export const apiClient = axios.create({

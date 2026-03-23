@@ -1,5 +1,6 @@
 import { HospitalColors } from '@/constants/theme';
 import { updateUser, uploadProfileImage } from '@/services/userApi';
+import { showApiError } from '@/utils/apiErrorHandler';
 import { SessionManager } from '@/utils/session';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -119,10 +120,6 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = async () => {
-    if (!nombres.trim() || !apellidos.trim()) {
-      Alert.alert('Error', 'El nombre y apellido son obligatorios.');
-      return;
-    }
     if (celular.length < 9) {
       Alert.alert('Error', 'El celular debe tener al menos 9 dígitos.');
       return;
@@ -156,8 +153,7 @@ export default function EditProfileScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error: any) {
-      const msg = error.response?.data?.message || error.response?.data?.error || 'Error al actualizar el perfil.';
-      Alert.alert('Error', msg);
+      showApiError(error, 'Error', 'Error al actualizar el perfil. Intente nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -205,22 +201,16 @@ export default function EditProfileScreen() {
         {/* Form */}
         <View style={styles.card}>
           <Text style={styles.label}>Nombre(s)</Text>
-          <TextInput
-            style={styles.input}
-            value={nombres}
-            onChangeText={setNombres}
-            placeholder="Tu nombre"
-            placeholderTextColor={HospitalColors.textLight}
-          />
+          <View style={styles.readOnlyInput}>
+            <Text style={styles.readOnlyText}>{nombres || 'No registrado'}</Text>
+            <Text style={styles.readOnlyBadge}>No editable</Text>
+          </View>
 
           <Text style={styles.label}>Apellidos</Text>
-          <TextInput
-            style={styles.input}
-            value={apellidos}
-            onChangeText={setApellidos}
-            placeholder="Tu apellido"
-            placeholderTextColor={HospitalColors.textLight}
-          />
+          <View style={styles.readOnlyInput}>
+            <Text style={styles.readOnlyText}>{apellidos || 'No registrado'}</Text>
+            <Text style={styles.readOnlyBadge}>No editable</Text>
+          </View>
 
           <Text style={styles.label}>Número de celular</Text>
           <TextInput
@@ -234,15 +224,10 @@ export default function EditProfileScreen() {
           />
 
           <Text style={styles.label}>Correo electrónico</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Ej: correo@ejemplo.com"
-            placeholderTextColor={HospitalColors.textLight}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          <View style={styles.readOnlyInput}>
+            <Text style={styles.readOnlyText}>{email || 'No registrado'}</Text>
+            <Text style={styles.readOnlyBadge}>No editable</Text>
+          </View>
 
           <Text style={styles.label}>Fecha de nacimiento</Text>
           <View style={styles.readOnlyInput}>

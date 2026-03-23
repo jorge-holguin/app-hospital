@@ -1,5 +1,6 @@
 import { HospitalColors } from '@/constants/theme';
 import { resetPassword } from '@/services/authApi';
+import { showApiError } from '@/utils/apiErrorHandler';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -49,11 +50,7 @@ export default function ResetPasswordScreen() {
         [{ text: 'Iniciar sesión', onPress: () => router.replace('/login') }],
       );
     } catch (error: any) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        'Error al restablecer la contraseña. Verifique el código e intente nuevamente.';
-      Alert.alert('Error', msg);
+      showApiError(error, 'Error', 'Error al restablecer la contraseña. Verifique el código e intente nuevamente.');
     } finally {
       setLoading(false);
     }

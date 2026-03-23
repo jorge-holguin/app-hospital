@@ -1,11 +1,12 @@
 /**
  * Citas API Service
- * Base URL: https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas
- * Solicitudes: https://citas.hospitalchosica.gob.pe/api/api/v1/solicitudes
+ * Base URL: EXPO_PUBLIC_SOLICITUDES_CITA_BASE_URL/api/v1/app-citas
+ * Solicitudes: EXPO_PUBLIC_SOLICITUDES_CITA_BASE_URL/api/v1/solicitudes
  */
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://citas.hospitalchosica.gob.pe/api/api/v1/app-citas';
-const SOLICITUDES_BASE = BASE_URL.replace('/app-citas', '/solicitudes');
+const API_ROOT = process.env.EXPO_PUBLIC_SOLICITUDES_CITA_BASE_URL || 'http://192.168.5.231:9012';
+const BASE_URL = `${API_ROOT}/api/v1/app-citas`;
+const SOLICITUDES_BASE = `${API_ROOT}/api/v1/solicitudes`;
 
 // ── Types ────────────────────────────────────────────────
 export interface Especialidad {

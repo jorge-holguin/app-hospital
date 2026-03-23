@@ -1,5 +1,6 @@
 import { HospitalColors } from '@/constants/theme';
 import { forgotPassword } from '@/services/authApi';
+import { showApiError } from '@/utils/apiErrorHandler';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -36,15 +37,7 @@ export default function RecoverPasswordScreen() {
       // Auto-navigate to reset-password screen
       router.push({ pathname: '/reset-password', params: { email: email.trim() } });
     } catch (error: any) {
-      if (!error.response) {
-        Alert.alert('Sin conexión', 'No se pudo conectar al servidor. Verifique su conexión.');
-      } else {
-        const msg =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          'Error al enviar el código. Intente nuevamente.';
-        Alert.alert('Error', msg);
-      }
+      showApiError(error, 'Error', 'Error al enviar el código. Intente nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -63,7 +56,8 @@ export default function RecoverPasswordScreen() {
 
           <Text style={styles.title}>Recuperar contraseña</Text>
           <Text style={styles.description}>
-            Ingresa tu correo electrónico y te enviaremos un código para restablecer tu contraseña.
+            Ingresa tu correo electrónico y te enviaremos un código para restablecer tu contraseña.{'\n\n'}
+            <Text style={{ fontStyle: 'italic', fontSize: 12 }}>El correo puede tardar unos minutos en llegar.</Text>
           </Text>
 
           <Text style={styles.label}>Correo electrónico</Text>

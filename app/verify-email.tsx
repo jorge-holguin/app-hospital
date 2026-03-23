@@ -1,5 +1,6 @@
 import { HospitalColors } from '@/constants/theme';
 import { verifyEmail } from '@/services/authApi';
+import { showApiError } from '@/utils/apiErrorHandler';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -42,15 +43,7 @@ export default function VerifyEmailScreen() {
         router.replace('/login');
       }, 2000);
     } catch (error: any) {
-      if (error.message === 'TIMEOUT') {
-        Alert.alert('Tiempo agotado', 'El servidor no respondió. Intente nuevamente.');
-      } else {
-        const msg =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          'Código inválido o expirado. Intente nuevamente.';
-        Alert.alert('Error', msg);
-      }
+      showApiError(error, 'Error de verificación', 'Código inválido o expirado. Intente nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -115,7 +108,8 @@ export default function VerifyEmailScreen() {
             </View>
 
             <Text style={styles.helpText}>
-              ¿No recibiste el correo? Revisa tu carpeta de spam o correo no deseado.
+              El correo con el código puede tardar unos minutos en llegar.{'\n'}
+              ¿No lo recibiste? Revisa tu carpeta de spam o correo no deseado.
             </Text>
 
             <TouchableOpacity onPress={() => router.replace('/login')} style={styles.backLink}>

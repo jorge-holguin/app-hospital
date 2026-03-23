@@ -9,8 +9,8 @@
  *   POST   /{id}/image               — Upload profile image
  */
 
-import { userClient } from './apiClient';
 import { Platform } from 'react-native';
+import { userClient } from './apiClient';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -83,6 +83,7 @@ export async function changePassword(
 
 /**
  * Upload user profile image.
+ * Always sends as JPEG for server compatibility.
  */
 export async function uploadProfileImage(
   userId: number,
@@ -94,16 +95,14 @@ export async function uploadProfileImage(
     // On web, fetch the blob and append it
     const response = await fetch(imageUri);
     const blob = await response.blob();
-    formData.append('file', blob, 'profile.jpg');
+    formData.append('file', blob, 'profile.jpeg');
   } else {
-    // On native, use the URI directly
-    const filename = imageUri.split('/').pop() || 'profile.jpg';
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    // On native, always use jpeg for compatibility with camera photos
+    // Camera photos may have different extensions (.jpg, .jpeg, .heic, etc.)
     formData.append('file', {
       uri: imageUri,
-      name: filename,
-      type,
+      name: 'profile.jpeg',
+      type: 'image/jpeg',
     } as any);
   }
 

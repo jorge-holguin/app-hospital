@@ -1,9 +1,9 @@
-import { mockTriage } from '@/constants/mockData';
 import { HospitalColors } from '@/constants/theme';
+import { getLatestValidTriage, getSignosVitales, mapTipoDocumentoForAtenciones, SignosVitales } from '@/services/signosVitalesApi';
 import { SessionManager, UserData } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const MenuCard = ({ title, subtitle, icon, onPress, disabled }: {
   title: string; subtitle: string; icon: string; onPress?: () => void; disabled?: boolean;
@@ -28,10 +28,33 @@ const MenuCard = ({ title, subtitle, icon, onPress, disabled }: {
 export default function DashboardScreen() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [triage, setTriage] = useState<SignosVitales | null>(null);
+  const [allTriajes, setAllTriajes] = useState<SignosVitales[]>([]);
+  const [triageLoading, setTriageLoading] = useState(true);
 
   useEffect(() => {
-    SessionManager.getUserData().then(setUser);
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      const userData = await SessionManager.getUserData();
+      setUser(userData);
+
+      if (userData?.nroDocumento) {
+        setTriageLoading(true);
+        const tipoDoc = mapTipoDocumentoForAtenciones(userData.tipoDocumento);
+        const triajes = await getSignosVitales(tipoDoc, userData.nroDocumento);
+        setAllTriajes(triajes);
+        const latestValid = getLatestValidTriage(triajes);
+        setTriage(latestValid);
+      }
+    } catch (error) {
+      console.error('Error loading triage data:', error);
+    } finally {
+      setTriageLoading(false);
+    }
+  };
 
   const nombres = user?.nombres || '';
   const apellidos = user?.apellidos || '';
@@ -80,25 +103,38 @@ export default function DashboardScreen() {
       {/* Triage Card */}
       <TouchableOpacity
         style={styles.triageCard}
-        onPress={() => router.push('/triage-history')}
+        onPress={() => router.push({
+          pathname: '/triage-history',
+          params: { triajes: JSON.stringify(allTriajes) },
+        })}
         activeOpacity={0.7}
       >
         <View style={styles.triageHeader}>
           <Text style={styles.triageTitle}>Último Triaje</Text>
-          <Text style={styles.triageDate}>{mockTriage.fecha}</Text>
+          <Text style={styles.triageDate}>{triage?.fecha || 'Sin datos'}</Text>
         </View>
-        <View style={styles.triageGrid}>
-          {[
-            { label: 'Talla (CM)', value: `${mockTriage.talla.toFixed(2)}`, color: HospitalColors.primary },
-            { label: 'G.S', value: mockTriage.grupoSanguineo, color: '#DC2626' },
-            { label: 'Peso (KG)', value: `${mockTriage.peso}`, color: HospitalColors.accent },
-          ].map((item, i) => (
-            <View key={i} style={styles.triageItem}>
-              <Text style={styles.triageLabel}>{item.label}</Text>
-              <Text style={[styles.triageValue, { color: item.color }]}>{item.value}</Text>
-            </View>
-          ))}
-        </View>
+        {triageLoading ? (
+          <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+            <ActivityIndicator size="small" color={HospitalColors.primary} />
+            <Text style={{ fontSize: 12, color: HospitalColors.textLight, marginTop: 8 }}>Cargando...</Text>
+          </View>
+        ) : triage ? (
+          <View style={styles.triageGrid}>
+            {[
+              { label: 'Talla (CM)', value: triage.talla || 'N/D', color: HospitalColors.primary },
+              { label: 'Peso (KG)', value: triage.peso || 'N/D', color: HospitalColors.accent },
+            ].map((item, i) => (
+              <View key={i} style={styles.triageItem}>
+                <Text style={styles.triageLabel}>{item.label}</Text>
+                <Text style={[styles.triageValue, { color: item.color }]}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+            <Text style={{ fontSize: 13, color: HospitalColors.textLight }}>No hay datos de triaje disponibles</Text>
+          </View>
+        )}
         <Text style={{ textAlign: 'center', fontSize: 12, color: HospitalColors.primary, fontWeight: '600', marginTop: 12 }}>Ver historial de triaje ›</Text>
       </TouchableOpacity>
 

@@ -11,67 +11,63 @@ export default function TriageDetailScreen() {
     peso: string;
     presionArterial: string;
     temperatura: string;
-    saturacion: string;
-    frecuenciaCardiaca: string;
-    frecuenciaRespiratoria: string;
-    imc: string;
+    origen: string;
+    edad: string;
   }>();
+
+  // Calculate IMC if peso and talla are available
+  const calcularIMC = (): string => {
+    const peso = parseFloat(params.peso || '0');
+    const tallaCm = parseFloat(params.talla || '0');
+    if (peso > 0 && tallaCm > 0) {
+      const tallaM = tallaCm / 100;
+      const imc = peso / (tallaM * tallaM);
+      return imc.toFixed(1);
+    }
+    return 'N/D';
+  };
 
   const vitals = [
     {
-      label: 'Frecuencia Cardíaca',
-      value: params.frecuenciaCardiaca || '76',
-      unit: 'lpm',
-      icon: '❤️',
-      color: '#DC2626',
-    },
-    {
-      label: 'Frecuencia Respiratoria',
-      value: params.frecuenciaRespiratoria || '15',
-      unit: 'rpm',
-      icon: '🫁',
-      color: '#2563EB',
-    },
-    {
-      label: 'Temperatura (C°)',
-      value: params.temperatura || '37.5',
+      label: 'Temperatura',
+      value: params.temperatura || 'N/D',
       unit: '°C',
       icon: '🌡️',
       color: '#D97706',
     },
     {
       label: 'Presión Arterial',
-      value: params.presionArterial || '120/80',
+      value: params.presionArterial || 'N/D',
       unit: 'mmHg',
       icon: '💓',
       color: '#7C3AED',
     },
     {
-      label: 'Peso (Kg)',
-      value: params.peso || '78.2',
+      label: 'Peso',
+      value: params.peso || 'N/D',
       unit: 'Kg',
       icon: '⚖️',
       color: HospitalColors.accent,
     },
     {
-      label: 'Talla (cm)',
-      value: params.talla || '1.70',
-      unit: 'Cm',
+      label: 'Talla',
+      value: params.talla || 'N/D',
+      unit: 'cm',
       icon: '📏',
       color: HospitalColors.primary,
     },
     {
-      label: 'Índice de Masa Corporal',
-      value: params.imc || '27.1',
-      unit: 'kg/m2',
+      label: 'IMC',
+      value: calcularIMC(),
+      unit: 'kg/m²',
       icon: '📊',
       color: '#059669',
     },
     {
-      label: 'Saturación O₂',
-      value: params.saturacion || '98',
-      unit: '%',
-      icon: '💨',
+      label: 'Edad',
+      value: params.edad || 'N/D',
+      unit: 'años',
+      icon: '🎂',
       color: '#0891B2',
     },
   ];
@@ -83,22 +79,27 @@ export default function TriageDetailScreen() {
           <Text style={styles.backBtn}>← Atrás</Text>
         </TouchableOpacity>
         <Text style={styles.title}>SIGNOS VITALES</Text>
-        <Text style={styles.subtitle}>Triaje del {params.fecha}</Text>
+        <Text style={styles.subtitle}>Triaje del {params.fecha || 'Sin fecha'}</Text>
       </View>
 
-      {/* Main vital - Heart Rate */}
+      {/* Main vital - Presión Arterial */}
       <View style={styles.mainVitalCard}>
-        <Text style={{ fontSize: 28 }}>❤️</Text>
-        <Text style={styles.mainVitalLabel}>Frecuencia Cardíaca</Text>
+        <Text style={{ fontSize: 28 }}>💓</Text>
+        <Text style={styles.mainVitalLabel}>Presión Arterial</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-          <Text style={styles.mainVitalValue}>{params.frecuenciaCardiaca || '76'}</Text>
-          <Text style={styles.mainVitalUnit}> lpm</Text>
+          <Text style={styles.mainVitalValue}>{params.presionArterial || 'N/D'}</Text>
+          <Text style={styles.mainVitalUnit}> mmHg</Text>
         </View>
+        {params.origen && (
+          <Text style={{ fontSize: 12, color: HospitalColors.textLight, marginTop: 8 }}>
+            Origen: {params.origen === 'CE' ? 'Consulta Externa' : params.origen}
+          </Text>
+        )}
       </View>
 
       {/* Vital signs grid */}
       <View style={styles.grid}>
-        {vitals.slice(1).map((vital, index) => (
+        {vitals.filter(v => v.label !== 'Presión Arterial').map((vital, index) => (
           <View key={index} style={styles.vitalCard}>
             <Text style={{ fontSize: 20, marginBottom: 6 }}>{vital.icon}</Text>
             <Text style={styles.vitalLabel}>{vital.label}</Text>

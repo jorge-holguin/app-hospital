@@ -1,6 +1,7 @@
 import { HospitalColors } from '@/constants/theme';
 import { login } from '@/services/authApi';
 import { getUserByEmail } from '@/services/userApi';
+import { showApiError } from '@/utils/apiErrorHandler';
 import { SessionManager } from '@/utils/session';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -68,32 +69,13 @@ export default function LoginScreen() {
 
       router.replace('/dashboard');
     } catch (error: any) {
-      if (error.message === 'TIMEOUT') {
-        Alert.alert(
-          'Tiempo agotado',
-          'El servidor no respondió a tiempo. Verifique su conexión a internet e intente nuevamente.',
-        );
-      } else if (error.response?.status === 400) {
-        Alert.alert(
-          'Usuario inválido',
-          'Revise si su contraseña o correo electrónico es correcto.',
-        );
-      } else if (error.response?.status === 403) {
+      if (error.response?.status === 403) {
         Alert.alert(
           'Cuenta no verificada',
           'Debe verificar su correo electrónico antes de iniciar sesión.',
         );
-      } else if (!error.response) {
-        Alert.alert(
-          'Sin conexión',
-          'No se pudo conectar al servidor. Verifique que está conectado a la red del hospital o a internet.',
-        );
       } else {
-        const msg =
-          error.response?.data?.message ||
-          error.response?.data?.error ||
-          'Error al iniciar sesión. Intente nuevamente.';
-        Alert.alert('Error', msg);
+        showApiError(error, 'Error de inicio de sesión', 'Revise su correo electrónico y contraseña.');
       }
     } finally {
       setLoading(false);

@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
   shiftTextActive: { color: HospitalColors.primaryDark },
   calendarContainer: {
     backgroundColor: HospitalColors.white, borderRadius: 16, marginHorizontal: 20,
-    padding: 16, marginBottom: 20, borderWidth: 1, borderColor: HospitalColors.border,
+    padding: 12, marginBottom: 20, borderWidth: 1, borderColor: HospitalColors.border,
   },
   calendarHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
@@ -490,6 +490,7 @@ const styles = StyleSheet.create({
   calendarRow: { flexDirection: 'row' },
   calendarCell: {
     flex: 1, aspectRatio: 1, justifyContent: 'center', alignItems: 'center', margin: 2,
+    maxHeight: 45, maxWidth: 45,
   },
   calendarDayHeader: { fontSize: 12, fontWeight: '700', color: HospitalColors.textLight },
   calendarDayText: { fontSize: 14 },
